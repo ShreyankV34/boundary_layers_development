@@ -1,0 +1,50 @@
+import pandas as pd
+import numpy as np
+
+# Load the data
+file_path = '/mnt/data/file-Ufy476qXtrXV7wJlXVMbWGAy'
+df = pd.read_csv(file_path)
+
+# Define the constants
+P3_const = 1  # Example value, replace with actual
+T3_const = 1000  # Example value, replace with actual
+SPHUM_const = 0  # Example value, replace with actual
+
+# Define the function to calculate fqa_NOx based on T3 and far4
+def calculate_fqa_NOx(T3, far4):
+    if T3 >= 1000:
+        a0, a1, a2, a3, a4, a5, a6 = -2.66e+03, -6.86e+05, -7.04e+07, -3.76e+10, 1.41e+11, -1.72e+12, -1.10e+13
+        fqa_NOx = a0 + a1 * far4 + a2 * far4**2 + a3 * far4**3 + a4 * far4**4 + a5 * far4**5 + a6 * far4**6
+    else:
+        a0, a11 = -6.08e+01, -2.54e-02
+        fqa_NOx = a0 + a11 * T3
+    return fqa_NOx
+
+# Define the function to calculate NOx
+def calculate_NOx(row):
+    T3 = row['T3']
+    P3 = row['P3']
+    WF = row['WF']
+    far4 = row['far4']
+    SPHUM = row['SPHUM']
+    
+    fqa_NOx = calculate_fqa_NOx(T3, far4)
+    
+    NOx = (
+        (P3 / P3_const) ** 0.38 *
+        np.exp(0.00236 * (T3 - T3_const)) *
+        np.exp(-18.8 * (SPHUM - SPHUM_const)) *
+        fqa_NOx * WF / (3600 * 2.2046)
+    )
+    
+    return NOx
+
+# Apply the function to each row in the dataframe using a lambda function
+df['NOx'] = df.apply(lambda row: calculate_NOx(row), axis=1)
+
+# Inspect the updated dataframe
+print(df.head())
+
+# Save the updated dataframe
+output_file_path = '/mnt/data/updated_file.csv'
+df.to_csv(output_file_path, index=False)
