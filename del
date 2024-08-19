@@ -1,0 +1,51 @@
+import sys
+from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
+from ui_main_window import Ui_MainWindow  # Import the generated Python file from the .ui file
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super(MainWindow, self).__init__()
+        self.ui = Ui_MainWindow()
+        self.ui.setupUi(self)
+
+        # Connect buttons to functions
+        self.ui.addEngineButton.clicked.connect(self.add_engine)
+        self.ui.addMissionButton.clicked.connect(self.add_mission)
+        self.ui.deleteEngineButton.clicked.connect(self.delete_engine)
+        self.ui.deleteMissionButton.clicked.connect(self.delete_mission)
+
+    def add_engine(self):
+        # Example of adding an engine
+        engine_name = f"Engine {self.ui.listWidgetEngines.count() + 1}"
+        self.ui.listWidgetEngines.addItem(engine_name)
+
+    def add_mission(self):
+        # Example of adding a mission
+        mission_name = f"Mission {self.ui.listWidgetMissions.count() + 1}"
+        self.ui.listWidgetMissions.addItem(mission_name)
+
+    def delete_engine(self):
+        # Delete the selected engine
+        selected_items = self.ui.listWidgetEngines.selectedItems()
+        if not selected_items:
+            QMessageBox.warning(self, "Warning", "No engine selected for deletion.")
+            return
+
+        for item in selected_items:
+            self.ui.listWidgetEngines.takeItem(self.ui.listWidgetEngines.row(item))
+
+    def delete_mission(self):
+        # Delete the selected mission
+        selected_items = self.ui.listWidgetMissions.selectedItems()
+        if not selected_items:
+            QMessageBox.warning(self, "Warning", "No mission selected for deletion.")
+            return
+
+        for item in selected_items:
+            self.ui.listWidgetMissions.takeItem(self.ui.listWidgetMissions.row(item))
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec())
