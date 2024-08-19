@@ -1,0 +1,33 @@
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super(MainWindow, self).__init__()
+        self.ui = Ui_MainWindow()  # Assuming your .ui file is loaded here
+        self.ui.setupUi(self)
+
+        # A dictionary to store missions and their associated CSV files
+        self.missions = {}
+
+        # Connect the delete buttons to the respective functions
+        self.ui.deleteMissionButton.clicked.connect(self.delete_mission)
+        self.ui.deleteEngineButton.clicked.connect(self.delete_engine)
+
+    def delete_mission(self):
+        selected_items = self.ui.listWidgetMissions.selectedItems()
+        if not selected_items:
+            QMessageBox.warning(self, "Warning", "No mission selected for deletion.")
+            return
+
+        for item in selected_items:
+            mission_name = item.text()
+            if mission_name in self.missions:
+                del self.missions[mission_name]
+            self.ui.listWidgetMissions.takeItem(self.ui.listWidgetMissions.row(item))
+            QMessageBox.information(self, "Mission Deleted", f"Deleted {mission_name}")
+
+    def delete_engine(self):
+        engine_name = self.ui.comboBoxEngines.currentText()
+        if engine_name:
+            self.ui.comboBoxEngines.removeItem(self.ui.comboBoxEngines.currentIndex())
+            QMessageBox.information(self, "Engine Deleted", f"Deleted engine {engine_name}")
+        else:
+            QMessageBox.warning(self, "Warning", "No engine selected for deletion.")
