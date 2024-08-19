@@ -1,0 +1,41 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Sample data
+x = np.linspace(0, 10, 100)
+y = np.cumsum(np.random.rand(100))  # Cumulative sum to generate a cumulative plot
+
+# Calculate the area under the curve using trapezoidal rule
+area = np.trapz(y, x)
+
+# Plot the cumulative data
+fig, ax = plt.subplots()
+line, = ax.plot(x, y, label='Cumulative Data')
+plt.fill_between(x, y, alpha=0.2)
+plt.title('Cumulative Plot')
+
+# Annotation for displaying area
+annotation = ax.annotate(
+    f'Area: {area:.2f}',
+    xy=(0, 0),
+    xytext=(-80, 30),
+    textcoords="offset points",
+    bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="yellow", alpha=0.7),
+    arrowprops=dict(arrowstyle="->", connectionstyle="arc3,rad=.5"),
+    fontsize=10,
+    visible=False
+)
+
+# Function to update the annotation position and visibility
+def update_annot(event):
+    if event.inaxes == ax:
+        # Get the closest data point
+        xdata, ydata = event.xdata, event.ydata
+        annotation.xy = (xdata, ydata)
+        annotation.set_visible(True)
+        fig.canvas.draw_idle()
+
+# Connect the event to the plot
+fig.canvas.mpl_connect("motion_notify_event", update_annot)
+
+plt.show()
