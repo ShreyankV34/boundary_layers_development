@@ -1,0 +1,27 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Generate some dummy data
+labels = ['A', 'B', 'C', 'D']
+sizes = [15, 30, 45, 10]
+
+# Create a donut plot
+fig, ax = plt.subplots()
+wedges, texts = ax.pie(sizes, labels=labels, wedgeprops=dict(width=0.3))
+
+# Function to dynamically adjust the font size
+def resize_text(event):
+    fig_width, fig_height = fig.get_size_inches()
+    for text in texts:
+        bbox = text.get_window_extent(renderer=fig.canvas.get_renderer())
+        text_height = bbox.height / fig.dpi
+        new_fontsize = max(10, 20 * fig_height / bbox.height)  # Adjust the multiplier as needed
+        text.set_fontsize(new_fontsize)
+
+# Connect the function to the draw event
+fig.canvas.mpl_connect('draw_event', resize_text)
+
+# Set aspect ratio to be equal so that pie is drawn as a circle.
+ax.set_aspect('equal')
+
+plt.show()
