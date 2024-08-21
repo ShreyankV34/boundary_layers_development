@@ -1,0 +1,57 @@
+# Create and Initialize the Delete Mission Button
+icon = qta.icon('mdi6.airplane-minus', color=('#DA291C', 256))
+self.delete_button = QtWidgets.QToolButton(self)
+self.delete_button.setToolTip("Delete Mission")
+self.delete_button.setObjectName("btnDeleteMission")
+self.delete_button.setIcon(icon)
+self.delete_button.setEnabled(False)  # Initially disable the button
+self.delete_button.clicked.connect(self.delete_mission)
+self.button_obj['delete_mission'] = self.delete_button
+self.toobar.addWidget(self.delete_button)
+
+# Method to Load Missions
+def load_missions(self, missions):
+    self.missions = missions  # Load missions into your internal list
+    
+    # Populate the QTreeWidget with missions
+    for mission in missions:
+        mission_item = QtWidgets.QTreeWidgetItem(self.mission_tree_widget)
+        mission_item.setText(0, mission["name"])
+        mission_item.setText(1, mission["path"])
+    
+    # Enable the delete button now that missions are loaded
+    self.delete_button.setEnabled(True)
+
+# Method to Delete Selected Mission
+def delete_mission(self):
+    selected_items = self.mission_tree_widget.selectedItems()
+    
+    if not selected_items:
+        print("No mission selected to delete.")
+        return
+    
+    for item in selected_items:
+        # Remove the selected mission node from the tree
+        root = self.mission_tree_widget.invisibleRootItem()
+        (item.parent() or root).removeChild(item)
+        
+        # Optional: Remove it from your internal data structure
+        mission_name = item.text(0)
+        self.missions = [mission for mission in self.missions if mission["name"] != mission_name]
+        
+        print(f"Mission '{mission_name}' deleted.")
+    
+    # Disable the delete button if no items are left after deletion
+    if not self.mission_tree_widget.topLevelItemCount():
+        self.delete_button.setEnabled(False)
+
+# Method to Handle Selection Changes
+def handle_selection_change(self):
+    selected_items = self.mission_tree_widget.selectedItems()
+    if selected_items:
+        self.delete_button.setEnabled(True)
+    else:
+        self.delete_button.setEnabled(False)
+
+# Connect the selection change event to the handler
+self.mission_tree_widget.itemSelectionChanged.connect(self.handle_selection_change)
