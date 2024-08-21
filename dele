@@ -1,0 +1,18 @@
+def delete_mission(self):
+    # Get the selected items from the QTreeWidget
+    selected_items = self.mission_tree_widget.selectedItems()  # Assuming your QTreeWidget is named `mission_tree_widget`
+    
+    if not selected_items:
+        print("No mission selected to delete.")
+        return
+    
+    for item in selected_items:
+        # Remove the selected mission node from the tree
+        root = self.mission_tree_widget.invisibleRootItem()
+        (item.parent() or root).removeChild(item)
+        
+        # Optional: You might also want to remove it from your internal data structure
+        mission_name = item.text(0)  # Assuming the mission name is in the first column
+        self.missions = [mission for mission in self.missions if mission != mission_name]
+        
+        print(f"Mission '{mission_name}' deleted.")
