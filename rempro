@@ -1,0 +1,96 @@
+from PySide6 import QtWidgets, QtGui  # Use PySide6 imports
+import qtawesome as qta  # qtawesome can still be used as is
+import sys
+
+class MainWindow(QtWidgets.QMainWindow):
+    def __init__(self):
+        super(MainWindow, self).__init__()
+
+        self.toobar = self.addToolBar("Main Toolbar")
+        self.button_obj = {}
+
+        # Adding buttons
+        self.add_new_project_button()
+        self.add_open_project_button()
+        self.add_remove_project_button()
+
+        # Initialize a central widget and set up a treeProject for demonstration
+        self.central_widget = QtWidgets.QWidget(self)
+        self.setCentralWidget(self.central_widget)
+        
+        self.ui_layout = QtWidgets.QVBoxLayout(self.central_widget)
+        self.ui.treeProject = QtWidgets.QTreeWidget(self.central_widget)
+        self.ui.treeProject.setHeaderLabels(["Project Name"])
+        self.ui_layout.addWidget(self.ui.treeProject)
+
+    def add_new_project_button(self):
+        icon = qta.icon('mdi6.newspaper-plus', color=('midnightblue', 256))
+        toolButton = QtWidgets.QToolButton(self)
+        toolButton.setToolTip("New Project")
+        toolButton.setObjectName("btnNewProject")
+        toolButton.setIcon(icon)
+        toolButton.clicked.connect(self.new_project)
+        self.toobar.addWidget(toolButton)
+        self.button_obj['new_project'] = toolButton
+
+    def add_open_project_button(self):
+        icon = qta.icon('mdi6.book-open', color=('midnightblue', 256))
+        toolButton = QtWidgets.QToolButton(self)
+        toolButton.setToolTip("Open Project")
+        toolButton.setObjectName("btnOpenProject")
+        toolButton.setIcon(icon)
+        toolButton.clicked.connect(self.open_project)
+        self.toobar.addWidget(toolButton)
+        self.button_obj['open_project'] = toolButton
+
+    def add_remove_project_button(self):
+        icon = qta.icon('mdi6.trash-can', color=('midnightblue', 256))
+        toolButton = QtWidgets.QToolButton(self)
+        toolButton.setToolTip("Remove Project")
+        toolButton.setObjectName("btnRemoveProject")
+        toolButton.setIcon(icon)
+        toolButton.clicked.connect(self.remove_project)
+        self.toobar.addWidget(toolButton)
+        self.button_obj['remove_project'] = toolButton
+
+    def new_project(self):
+        # Logic to add a new project
+        project_name, ok = QtWidgets.QInputDialog.getText(self, "New Project", "Enter project name:")
+        if ok and project_name:
+            new_item = QtWidgets.QTreeWidgetItem(self.ui.treeProject)
+            new_item.setText(0, project_name)
+            print(f"New project '{project_name}' added")
+
+    def open_project(self):
+        print("Open Project button clicked")
+
+    def remove_project(self):
+        selected_item = self.ui.treeProject.currentItem()
+        if selected_item:
+            project_name = selected_item.text(0)
+            confirmation = QtWidgets.QMessageBox.question(
+                self,
+                "Confirm Remove Project",
+                f"Are you sure you want to remove the project '{project_name}'?",
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                QtWidgets.QMessageBox.No
+            )
+
+            if confirmation == QtWidgets.QMessageBox.Yes:
+                self.remove_project_data(project_name)
+                root = self.ui.treeProject.invisibleRootItem()
+                (item, ) = self.ui.treeProject.selectedItems()
+                root.removeChild(item)
+                print(f"Project '{project_name}' removed successfully.")
+        else:
+            QtWidgets.QMessageBox.warning(self, "No Selection", "Please select a project to remove.")
+
+    def remove_project_data(self, project_name):
+        # Logic to remove project data from backend
+        print(f"Removing project data for: {project_name}")
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+    mainWin = MainWindow()
+    mainWin.show()
+    sys.exit(app.exec())
