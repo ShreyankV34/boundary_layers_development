@@ -1,0 +1,45 @@
+def remove_project(self):
+    selected_item = self.treeProject.currentItem()
+    if selected_item:
+        project_name = selected_item.text(0)
+        confirmation = QtWidgets.QMessageBox.question(
+            self,
+            "Confirm Remove Project",
+            f"Are you sure you want to remove the project '{project_name}'?",
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+            QtWidgets.QMessageBox.No
+        )
+
+        if confirmation == QtWidgets.QMessageBox.Yes:
+            self.remove_project_data(project_name)
+            root = self.treeProject.invisibleRootItem()
+            (item, ) = self.treeProject.selectedItems()
+            root.removeChild(item)
+            print(f"Project '{project_name}' removed successfully.")
+
+            # Clear or update the plot
+            self.clear_plot()  # Call the method to clear the plot
+            
+            # Force a repaint to ensure the plot area is updated
+            self.update_plot_area()
+
+    else:
+        QtWidgets.QMessageBox.warning(self, "No Selection", "Please select a project to remove.")
+
+def clear_plot(self):
+    # Clear the plot and ensure all resources are released
+    if hasattr(self, 'plot_widget'):  # Check if the plot widget exists
+        self.plot_widget.clear()  # Clear the plot
+        self.plot_widget.draw()   # Redraw the plot (if applicable)
+
+    # If using Matplotlib, you might need to explicitly clear the figure
+    if hasattr(self, 'figure'):  # Assuming a Matplotlib figure object
+        self.figure.clear()      # Clear the figure
+        self.canvas.draw()       # Redraw the canvas (if applicable)
+
+def update_plot_area(self):
+    # Update or repaint the plot area to reflect changes
+    if hasattr(self, 'plot_widget'):
+        self.plot_widget.update()  # Force a redraw of the plot widget
+    else:
+        print("Plot widget not found or not initialized.")
