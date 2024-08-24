@@ -1,0 +1,36 @@
+def remove_project(self):
+    selected_item = self.ui.treeProject.currentItem()
+    if selected_item:
+        project_name = selected_item.text(0)
+        confirmation = QtWidgets.QMessageBox.question(
+            self,
+            "Confirm Remove Project",
+            f"Are you sure you want to remove the project '{project_name}'?",
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+        )
+
+        if confirmation == QtWidgets.QMessageBox.Yes:
+            self.remove_project_data(project_name)
+            
+            # Find the root and remove the selected item from the tree
+            root = self.ui.treeProject.invisibleRootItem()
+            (item,) = self.ui.treeProject.selectedItems()
+            root.removeChild(item)
+            
+            # Remove the associated plot from the screen
+            if project_name in self.plot_canvases:
+                plot_canvas = self.plot_canvases.pop(project_name)
+                self.ui.plot_layout.removeWidget(plot_canvas)
+                plot_canvas.deleteLater()
+
+            print(f"Project '{project_name}' removed successfully.")
+        else:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "No Selection",
+                "Please select a project to remove."
+            )
+
+def remove_project_data(self, project_name):
+    # Logic to remove project data from backend
+    print(f"Removing project data for: {project_name}")
