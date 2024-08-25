@@ -1,0 +1,81 @@
+import unittest
+from PySide6.QtWidgets import QApplication, QPushButton
+from PySide6.QtTest import QTest
+from PySide6.QtCore import Qt
+
+class TestBentoGUI(unittest.TestCase):
+    def setUp(self):
+        # Setup the application and main window
+        self.app = QApplication([])
+        self.gui = BentoGUI()
+
+        # Mocking UI components for test
+        self.gui.ui = type('', (), {})()  # Mock ui attribute
+        self.gui.ui.treeProject = type('', (), {})()
+        self.gui.ui.treeProject.currentItem = lambda: None
+
+        # Mock buttons
+        self.gui.project_remove_button = QPushButton("Remove Project")
+        self.gui.mission_delete_button = QPushButton("Delete Mission")
+        self.gui.parameter_button = QPushButton("Parameters")
+
+        # Add buttons to button_obj dictionary to simulate findChild behavior
+        self.gui.button_obj = {
+            'project_remove': self.gui.project_remove_button,
+            'mission_delete': self.gui.mission_delete_button,
+            'parameters_buttons': self.gui.parameter_button
+        }
+
+        # Ensure initial states are as expected
+        self.gui.disable_tool_button(['project_remove', 'mission_delete', 'parameters_buttons'])
+
+    def test_initial_state(self):
+        # Test that initial state has buttons disabled
+        self.assertFalse(self.gui.project_remove_button.isEnabled())
+        self.assertFalse(self.gui.mission_delete_button.isEnabled())
+        self.assertFalse(self.gui.parameter_button.isEnabled())
+
+    def test_add_project_node(self):
+        # Simulate selecting a ProjectNode
+        project_node = ProjectNode()
+        self.gui.ui.treeProject.currentItem = lambda: project_node
+        self.gui.treeWidgetSelectionChanged()
+
+        # Check if the appropriate buttons are enabled
+        self.assertTrue(self.gui.button_obj['project_remove'].isEnabled())
+        self.assertFalse(self.gui.button_obj['mission_delete'].isEnabled())
+        self.assertFalse(self.gui.button_obj['parameters_buttons'].isEnabled())
+
+    def test_load_mission_file(self):
+        # Simulate selecting a MissionNodeChild and loading a mission file
+        mission_node = MissionNodeChild()
+        self.gui.ui.treeProject.currentItem = lambda: mission_node
+        mission_node.mission_file_loaded = True
+        self.gui.treeWidgetSelectionChanged()
+
+        # Check if the mission-related and parameters buttons are enabled
+        self.assertTrue(self.gui.button_obj['mission_delete'].isEnabled())
+        self.assertTrue(self.gui.button_obj['parameters_buttons'].isEnabled())
+
+    def test_remove_mission(self):
+        # Simulate mission node with a mission loaded
+        mission_node = MissionNodeChild()
+        self.gui.ui.treeProject.currentItem = lambda: mission_node
+        mission_node.mission_file_loaded = True
+        self.gui.treeWidgetSelectionChanged()
+
+        # Now simulate removing the mission
+        mission_node.mission_file_loaded = False
+        mission_node.update_button_states()
+
+        # Check if mission-related and parameters buttons are disabled
+        self.assertFalse(self.gui.button_obj['mission_delete'].isEnabled())
+        self.assertFalse(self.gui.button_obj['parameters_buttons'].isEnabled())
+
+    def tearDown(self):
+        # Cleanup
+        self.app.quit()
+
+# Run the tests
+if __name__ == '__main__':
+    unittest.main()
