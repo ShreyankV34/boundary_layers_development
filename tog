@@ -1,0 +1,74 @@
+import sys
+from PySide6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QCheckBox
+)
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+import numpy as np
+
+
+class PlotCanvas(FigureCanvas):
+    def __init__(self, parent=None):
+        fig, self.ax = Figure(figsize=(5, 4), dpi=100), None
+        self.ax = fig.add_subplot(111)
+        super().__init__(fig)
+
+    def plot_engines(self, engine1_data, engine2_data, stacked):
+        self.ax.clear()
+
+        if stacked:
+            self.ax.plot(engine1_data, label="Engine 1")
+            self.ax.plot(engine2_data, label="Engine 2")
+            self.ax.set_title("Stacked Plot of Engine Data")
+        else:
+            # Comparison plot, side by side
+            x = np.arange(len(engine1_data))
+            width = 0.35
+            self.ax.bar(x - width / 2, engine1_data, width, label="Engine 1")
+            self.ax.bar(x + width / 2, engine2_data, width, label="Engine 2")
+            self.ax.set_title("Comparison Plot of Engine Data")
+
+        self.ax.legend()
+        self.draw()
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Engine Data Plotting")
+
+        # Create layout and central widget
+        layout = QVBoxLayout()
+        widget = QWidget()
+        widget.setLayout(layout)
+        self.setCentralWidget(widget)
+
+        # Toggle for stacked vs comparative
+        self.toggle_checkbox = QCheckBox("Stack Plot")
+        layout.addWidget(self.toggle_checkbox)
+
+        # Plot Canvas
+        self.canvas = PlotCanvas(self)
+        layout.addWidget(self.canvas)
+
+        # Plot button
+        plot_button = QPushButton("Plot Engines")
+        layout.addWidget(plot_button)
+
+        # Connect button signal to slot
+        plot_button.clicked.connect(self.plot_engines)
+
+        # Engine data (example data)
+        self.engine1_data = np.random.rand(10) * 100
+        self.engine2_data = np.random.rand(10) * 100
+
+    def plot_engines(self):
+        stacked = self.toggle_checkbox.isChecked()
+        self.canvas.plot_engines(self.engine1_data, self.engine2_data, stacked)
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec())
