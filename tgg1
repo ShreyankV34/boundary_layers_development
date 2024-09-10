@@ -1,0 +1,104 @@
+import sys
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QStackedWidget
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+import matplotlib.pyplot as plt
+import numpy as np
+from PySide6.QtCore import Qt
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Engine Comparison Plots")
+        self.setGeometry(100, 100, 1200, 800)
+
+        # Main layout to hold everything
+        main_layout = QVBoxLayout()
+
+        # Categories at the top
+        categories_label = QLabel("Categories: A | B | C | D")
+        categories_label.setAlignment(Qt.AlignCenter)
+        main_layout.addWidget(categories_label)
+
+        # Create a horizontal layout to place Engine 1 and Engine 2 plots side by side
+        engines_layout = QHBoxLayout()
+
+        # Create two stacked widgets, one for each engine
+        self.engine1_stacked = QStackedWidget()
+        self.engine2_stacked = QStackedWidget()
+
+        # Add 10 plots to each stacked widget (one for each engine)
+        for i in range(10):
+            engine1_plot = self.create_plot(f"Engine 1", i)
+            engine2_plot = self.create_plot(f"Engine 2", i)
+            self.engine1_stacked.addWidget(engine1_plot)
+            self.engine2_stacked.addWidget(engine2_plot)
+
+        # Add both stacked widgets to the engines layout
+        engines_layout.addWidget(self.engine1_stacked)
+        engines_layout.addWidget(self.engine2_stacked)
+
+        main_layout.addLayout(engines_layout)
+
+        # Navigation buttons to slide through the plots
+        navigation_layout = QHBoxLayout()
+        prev_button = QPushButton("Previous")
+        next_button = QPushButton("Next")
+        prev_button.clicked.connect(self.show_previous_plot)
+        next_button.clicked.connect(self.show_next_plot)
+        navigation_layout.addWidget(prev_button)
+        navigation_layout.addWidget(next_button)
+
+        main_layout.addLayout(navigation_layout)
+
+        # Create a central widget and set the layout
+        central_widget = QWidget()
+        central_widget.setLayout(main_layout)
+        self.setCentralWidget(central_widget)
+
+    def create_plot(self, engine_name, index):
+        """Creates a matplotlib plot with 4 categories"""
+        categories = ['A', 'B', 'C', 'D']
+        values = np.random.rand(4)  # Random values for each engine
+
+        # Create a matplotlib figure
+        fig, ax = plt.subplots()
+        ax.bar(categories, values)
+        ax.set_title(f"{engine_name} Plot {index + 1}")
+        ax.set_ylabel("Quantity")
+
+        # Create a canvas to embed the plot in the PySide6 application
+        canvas = FigureCanvas(fig)
+        
+        # Wrap the canvas into a QWidget
+        widget = QWidget()
+        layout = QVBoxLayout()
+        layout.addWidget(canvas)
+        widget.setLayout(layout)
+        
+        return widget
+
+    def show_previous_plot(self):
+        """Show the previous plot for both engines in the stacked widgets"""
+        current_index = self.engine1_stacked.currentIndex()
+        if current_index > 0:
+            self.engine1_stacked.setCurrentIndex(current_index - 1)
+            self.engine2_stacked.setCurrentIndex(current_index - 1)
+
+    def show_next_plot(self):
+        """Show the next plot for both engines in the stacked widgets"""
+        current_index = self.engine1_stacked.currentIndex()
+        if current_index < self.engine1_stacked.count() - 1:
+            self.engine1_stacked.setCurrentIndex(current_index + 1)
+            self.engine2_stacked.setCurrentIndex(current_index + 1)
+
+if __name__ == "__main__":
+    # Create a QApplication
+    app = QApplication(sys.argv)
+
+    # Create an instance of the MainWindow
+    window = MainWindow()
+    window.show()
+
+    # Start the application event loop
+    sys.exit(app.exec())
