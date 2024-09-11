@@ -1,0 +1,85 @@
+import sys
+import random
+import numpy as np
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QComboBox, QPushButton
+
+# Sample data for 10 engines, each having 12 different quantities
+engine_data = {
+    f"Engine {i}": {f"Quantity {j}": np.random.randint(50, 150, 10) for j in range(1, 13)} for i in range(1, 11)
+}
+
+class PlotCanvas(FigureCanvas):
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = fig.add_subplot(111)
+        super().__init__(fig)
+        self.setParent(parent)
+        
+    def plot_overlay(self, engines, quantity):
+        self.axes.clear()  # Clear previous plots
+        x = np.arange(1, 11)  # Assume 10 data points for each engine
+        
+        for engine in engines:
+            y = engine_data[engine][quantity]
+            self.axes.plot(x, y, label=engine, marker='o')  # Plot with markers
+
+        # Add title, labels, legend, and grid for visual appeal
+        self.axes.set_title(f"Comparison of {quantity} across Selected Engines")
+        self.axes.set_xlabel('Time or Data Points')
+        self.axes.set_ylabel(f'{quantity} Value')
+        self.axes.legend(loc='upper right')
+        self.axes.grid(True)
+        
+        self.draw()  # Redraw the canvas
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        
+        self.setWindowTitle("Engine Quality Comparison")
+        self.setGeometry(100, 100, 800, 600)
+        
+        # Dropdown for engine selection
+        self.engine_dropdown = QComboBox(self)
+        self.engine_dropdown.addItems([f"Engine {i}" for i in range(1, 11)])
+        self.engine_dropdown.setEditable(True)
+        
+        # Dropdown for quantity selection
+        self.quantity_dropdown = QComboBox(self)
+        self.quantity_dropdown.addItems([f"Quantity {i}" for i in range(1, 13)])
+        self.quantity_dropdown.setEditable(True)
+        
+        # Button to plot data
+        self.plot_button = QPushButton("Plot", self)
+        self.plot_button.clicked.connect(self.plot_selected_data)
+        
+        # Plot Canvas
+        self.canvas = PlotCanvas(self, width=6, height=4)
+        
+        # Layout setup
+        layout = QVBoxLayout()
+        layout.addWidget(self.engine_dropdown)
+        layout.addWidget(self.quantity_dropdown)
+        layout.addWidget(self.plot_button)
+        layout.addWidget(self.canvas)
+        
+        container = QWidget()
+        container.setLayout(layout)
+        self.setCentralWidget(container)
+        
+    def plot_selected_data(self):
+        # Get selected engines and quantity
+        selected_engines = self.engine_dropdown.currentText().split(',')  # If multiple engines selected, split by comma
+        selected_quantity = self.quantity_dropdown.currentText()
+        
+        # Ensure selected engines are valid (at least one engine)
+        if selected_engines:
+            self.canvas.plot_overlay(selected_engines, selected_quantity)
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec())
