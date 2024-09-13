@@ -1,0 +1,94 @@
+import pandas as pd
+from difflib import get_close_matches
+
+class FileValidator:
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.df = None
+        self.load_file()
+    
+    def load_file(self):
+        """Loads the CSV file into a DataFrame."""
+        try:
+            self.df = pd.read_csv(self.file_path)
+        except Exception as e:
+            raise ValueError(f"Error reading the file: {e}")
+    
+    def check_columns(self, required_columns, tolerance=0.8):
+        """
+        Checks if the required columns are present in the file.
+        Allows for slight spelling deviations using fuzzy matching.
+        
+        Parameters:
+        required_columns (list): List of required columns.
+        tolerance (float): Matching tolerance for fuzzy matching.
+        
+        Returns:
+        bool: True if all required columns (or close matches) are found, False otherwise.
+        str: Message with the missing columns or confirmation.
+        """
+        missing_columns = []
+        for col in required_columns:
+            matches = get_close_matches(col, self.df.columns, n=1, cutoff=tolerance)
+            if not matches:
+                missing_columns.append(col)
+        
+        if missing_columns:
+            return False, f"Missing required columns: {', '.join(missing_columns)}"
+        
+        return True, "File is valid."
+
+# Validator for Mission files
+class MissionValidator(FileValidator):
+    def validate(self):
+        required_columns = [
+            'Mission segment', 'Time', 'P3_const', 'T3_const', 
+            'SPHUM_const', 'SPHUM', 'FAR4', 'WF'
+        ]
+        return self.check_columns(required_columns)
+
+# Validator for Utilization files
+class UtilizationValidator(FileValidator):
+    def validate(self, engine_name):
+        # Define the required columns for Utilization
+        engine_columns = [
+            'PW1100', 'PW1900', 'PW1500', 'PWGTFA', 
+            'MTUWET', 'SWITCH', 'HySIITE', 'LiteSIITE', 
+            'RISE', 'PWOPENROTORV2500'
+        ]
+        
+        required_columns = ['Mission'] + [engine_name]
+        
+        # Check if at least "Mission" and the engine column are present
+        return self.check_columns(required_columns)
+
+# Validator for Forecast files
+class ForecastValidator(FileValidator):
+    def validate(self):
+        required_columns = ['Year', 'Deliveries', 'EFH per Engine']
+        return self.check_columns(required_columns)
+
+# Example usage
+def main():
+    # Example paths to files
+    mission_file = "mission_file.csv"
+    utilization_file = "utilization_file.csv"
+    forecast_file = "forecast_file.csv"
+
+    # Mission validation
+    mission_validator = MissionValidator(mission_file)
+    is_valid, message = mission_validator.validate()
+    print(f"Mission file validation: {message}")
+
+    # Utilization validation (example for engine PW1100)
+    utilization_validator = UtilizationValidator(utilization_file)
+    is_valid, message = utilization_validator.validate('PW1100')
+    print(f"Utilization file validation: {message}")
+
+    # Forecast validation
+    forecast_validator = ForecastValidator(forecast_file)
+    is_valid, message = forecast_validator.validate()
+    print(f"Forecast file validation: {message}")
+
+if __name__ == "__main__":
+    main()
