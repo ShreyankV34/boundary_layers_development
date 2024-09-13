@@ -1,0 +1,114 @@
+import pandas as pd
+
+class FileValidator:
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.df = pd.read_csv(self.file_path)  # Load the file
+        self.required_columns = self.set_required_columns()
+
+    def set_required_columns(self):
+        """
+        To be implemented by subclasses to specify required columns.
+        """
+        raise NotImplementedError("Subclasses should implement this method to specify required columns.")
+
+    def is_valid(self):
+        """
+        Check if all required columns are present, allowing for extra columns.
+        """
+        missing_columns = set(self.required_columns) - set(self.df.columns)
+        if not missing_columns:
+            return True
+        else:
+            self.error_notification(missing_columns)
+            return False
+
+    def error_notification(self, missing_columns):
+        raise ValueError(f"Invalid file. Missing required columns: {missing_columns}")
+
+class MissionFileValidator(FileValidator):
+    def set_required_columns(self):
+        return [
+            'V2500', 'Time', 'Mission Segment',
+            'Thrust', 'P3_const', 'T3_const', 'SPHUM_const', 'SPHUM', 
+            'FAR4', 'WF'
+        ]
+
+class UtilizationFileValidator(FileValidator):
+    def __init__(self, file_path, engine_name):
+        self.engine_name = engine_name
+        super().__init__(file_path)
+
+    def set_required_columns(self):
+        """
+        For utilization, the required columns are 'missions' and one engine column.
+        """
+        # Define all possible engine columns
+        engine_columns = [
+            'PW1100', 'PW1900', 'PW1500', 'PWGTFA', 
+            'MTUWET', 'SWITCH', 'HySIITE', 'LiteSIITE', 
+            'RISE', 'PWOPENROTORV2500'
+        ]
+        
+        if self.engine_name not in engine_columns:
+            raise ValueError(f"Invalid engine name: {self.engine_name}. Must be one of {engine_columns}")
+
+        # The required columns include 'missions' and the specific engine column
+        return ['missions', self.engine_name]
+
+    def is_valid(self):
+        """
+        Override the validation to ensure that only relevant engine data is checked.
+        """
+        # Perform the standard validation for required columns
+        if super().is_valid():
+            # If the required columns are present, we filter the DataFrame to include only relevant data for the engine
+            filtered_df = self.df[['missions', self.engine_name]]
+            print(f"Utilization file is valid. Only the data for {self.engine_name} is considered.")
+            return True
+        return False
+
+class ForecastFileValidator(FileValidator):
+    def set_required_columns(self):
+        return [
+            'year', 'deliveries', 'EFH per engine'
+        ]
+
+def validate_file(file_path, file_type, engine_name=None):
+    """
+    Validate a file based on the file type (mission, utilization, forecast).
+    
+    Args:
+    - file_path (str): Path to the CSV file.
+    - file_type (str): Type of file being validated ('mission', 'utilization', 'forecast').
+    - engine_name (str): Only required for utilization files (optional for mission and forecast).
+    """
+    validator_mapping = {
+        'mission': MissionFileValidator,
+        'utilization': UtilizationFileValidator,
+        'forecast': ForecastFileValidator,
+    }
+    
+    validator_class = validator_mapping.get(file_type.lower())
+    
+    if not validator_class:
+        raise ValueError(f"Unknown file type '{file_type}' specified.")
+    
+    # For Utilization file, pass the engine name
+    if file_type.lower() == 'utilization':
+        if not engine_name:
+            raise ValueError("Engine name is required for utilization file validation.")
+        validator = validator_class(file_path, engine_name)
+    else:
+        validator = validator_class(file_path)
+    
+    if validator.is_valid():
+        print(f"{file_type.capitalize()} file is valid.")
+    else:
+        print(f"{file_type.capitalize()} file is invalid.")
+
+if __name__ == "__main__":
+    # Example usage
+    validate_file("path_to_mission_file.csv", "mission")
+    validate_file("path_to_utilization_file.csv", "utilization", engine_name="PW1100")
+    validate_file("path_to_forecast_file.csv", "forecast")
