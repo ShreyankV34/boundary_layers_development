@@ -1,0 +1,42 @@
+# Import the validation classes from the file where the validation logic is defined
+from validation.file_validator import MissionValidator, UtilizationValidator, ForecastValidator
+from PySide6.QtWidgets import QMessageBox
+
+def handle_file_upload(file_type, file_path, engine_name=None):
+    """
+    This function will handle the uploaded file and validate it based on the file type.
+    
+    Parameters:
+    - file_type (str): The type of file (mission, utilization, forecast)
+    - file_path (str): The path of the file being uploaded
+    - engine_name (str, optional): Required only for utilization files to specify the engine
+    """
+    try:
+        # Validate Mission file
+        if file_type == 'mission':
+            validator = MissionValidator(file_path)
+            is_valid, message = validator.validate()
+
+        # Validate Utilization file
+        elif file_type == 'utilization':
+            if not engine_name:
+                raise ValueError("Engine name is required for utilization file validation.")
+            validator = UtilizationValidator(file_path)
+            is_valid, message = validator.validate(engine_name)
+
+        # Validate Forecast file
+        elif file_type == 'forecast':
+            validator = ForecastValidator(file_path)
+            is_valid, message = validator.validate()
+
+        else:
+            raise ValueError("Invalid file type selected.")
+
+        # Display validation result
+        if is_valid:
+            QMessageBox.information(None, "Validation Success", "File is valid!")
+        else:
+            QMessageBox.warning(None, "Validation Failed", message)
+
+    except Exception as e:
+        QMessageBox.critical(None, "Error", f"An error occurred during validation: {e}")
