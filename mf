@@ -1,0 +1,85 @@
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel
+
+# Example Plot Class for Mission (No cursor change)
+class MissionPlotWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.init_ui()
+
+    def init_ui(self):
+        self.label = QLabel("This is the Mission Plot")
+        self.label.setAlignment(Qt.AlignCenter)
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.label)
+        self.setLayout(layout)
+
+# Example Plot Class for Utilization (No cursor change)
+class UtilizationPlotWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.init_ui()
+
+    def init_ui(self):
+        self.label = QLabel("This is the Utilization Plot")
+        self.label.setAlignment(Qt.AlignCenter)
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.label)
+        self.setLayout(layout)
+
+# Forecast Plot Class with cursor functionality
+class ForecastPlotWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.init_ui()
+
+    def init_ui(self):
+        self.label = QLabel("Hover over this Forecast Plot to see the crosshair cursor.")
+        self.label.setAlignment(Qt.AlignCenter)
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.label)
+        self.setLayout(layout)
+
+    # Add cursor change functionality here
+    def enterEvent(self, event):
+        self.setCursor(Qt.CrossCursor)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self.setCursor(Qt.ArrowCursor)
+        super().leaveEvent(event)
+
+# Main Application Window
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Multiple Plots with Dynamic Cursor")
+        self.setGeometry(100, 100, 900, 600)
+
+        self.init_ui()
+
+    def init_ui(self):
+        # Create instances of each plot widget
+        self.mission_plot = MissionPlotWidget()
+        self.utilization_plot = UtilizationPlotWidget()
+        self.forecast_plot = ForecastPlotWidget()  # Only this plot has the cursor functionality
+
+        # Layout to add all plots (For example, using QVBoxLayout, but can be modified)
+        layout = QVBoxLayout()
+        layout.addWidget(self.mission_plot)
+        layout.addWidget(self.utilization_plot)
+        layout.addWidget(self.forecast_plot)
+
+        # Central widget to hold all plots
+        central_widget = QWidget()
+        central_widget.setLayout(layout)
+        self.setCentralWidget(central_widget)
+
+if __name__ == "__main__":
+    app = QApplication([])
+    window = MainWindow()
+    window.show()
+    app.exec()
