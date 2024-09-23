@@ -1,0 +1,47 @@
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout
+
+class ForecastPlotWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        # Initialize the layout and label
+        self.label = QLabel("Hover over this Forecast Plot to see the crosshair cursor.")
+        layout = QVBoxLayout()
+        layout.addWidget(self.label)
+        self.setLayout(layout)
+
+    # Add the cursor change functionality
+    def enterEvent(self, event):
+        """Change the cursor to crosshair when mouse enters the forecast plot widget."""
+        self.setCursor(Qt.CrossCursor)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        """Revert the cursor to arrow when mouse leaves the forecast plot widget."""
+        self.setCursor(Qt.ArrowCursor)
+        super().leaveEvent(event)
+
+
+
+
+
+/////
+
+def on_tree_selection(self, item, column):
+    """This method updates the plot area based on tree widget selection."""
+    selected_plot = item.text(column)
+
+    # Clear the existing plot area (pseudo code - adapt based on your layout)
+    self.clear_plot_area()
+
+    # Switch between plots
+    if selected_plot == "Mission":
+        mission_plot = MissionPlotWidget()
+        self.plot_area.layout().addWidget(mission_plot)
+    elif selected_plot == "Utilization":
+        utilization_plot = UtilizationPlotWidget()
+        self.plot_area.layout().addWidget(utilization_plot)
+    elif selected_plot == "Forecast":
+        forecast_plot = ForecastPlotWidget()  # This is where the forecast plot with mouse functionality is loaded
+        self.plot_area.layout().addWidget(forecast_plot)
