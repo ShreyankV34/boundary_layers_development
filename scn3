@@ -1,0 +1,203 @@
+import sys
+from PySide6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QDialog, 
+                               QComboBox, QCheckBox, QScrollArea, QToolBar, QFrame, QHBoxLayout, QLabel, 
+                               QMenu, QToolButton, QCheckBox, QAction)
+from PySide6.QtCore import Qt, QSize
+from PySide6.QtGui import QFont, QIcon
+import numpy as np
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+import matplotlib.pyplot as plt
+
+
+class MultiSelectDropdown(QToolButton):
+    def __init__(self, items, parent=None):
+        super().__init__(parent)
+        self.setPopupMode(QToolButton.InstantPopup)
+        self.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.setText("Select Engines")
+        self.setStyleSheet("""
+            QToolButton {
+                background-color: #4C566A;
+                color: white;
+                border-radius: 5px;
+                padding: 5px;
+                font-size: 14px;
+            }
+        """)
+
+        self.menu = QMenu(self)
+        self.setMenu(self.menu)
+        self.checkboxes = {}
+        self.selected_items = []
+
+        for item in items:
+            action = QAction(item, self)
+            action.setCheckable(True)
+            self.menu.addAction(action)
+            self.checkboxes[item] = action
+
+        # Connect all actions to update the button text
+        for action in self.menu.actions():
+            action.toggled.connect(self.update_selected_items)
+
+    def update_selected_items(self):
+        self.selected_items = [action.text() for action in self.menu.actions() if action.isChecked()]
+        if self.selected_items:
+            self.setText(f"Selected: {', '.join(self.selected_items)}")
+        else:
+            self.setText("Select Engines")
+
+    def get_selected_items(self):
+        return self.selected_items
+
+
+class ScenarioComparison(QDialog):
+    def __init__(self, engine_data, quantities, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Scenario Comparison")
+        self.setGeometry(200, 200, 1000, 700)
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #2E3440;
+            }
+            QLabel {
+                color: white;
+            }
+            QComboBox {
+                background-color: #4C566A;
+                color: white;
+                border-radius: 5px;
+                padding: 5px;
+                font-size: 14px;
+            }
+            QPushButton {
+                background-color: #5E81AC;
+                color: white;
+                border-radius: 15px;
+                padding: 10px;
+                font-size: 15px;
+            }
+            QPushButton:hover {
+                background-color: #88C0D0;
+            }
+        """)
+
+        self.engine_data = engine_data
+        self.quantities = quantities
+
+        # Main layout
+        layout = QVBoxLayout()
+
+        # Quantity drop-down with a label
+        quantity_label = QLabel("Select Quantity:", self)
+        quantity_label.setFont(QFont("Helvetica", 14))
+        layout.addWidget(quantity_label)
+
+        self.quantity_combobox = QComboBox(self)
+        self.quantity_combobox.addItems(self.quantities)
+        layout.addWidget(self.quantity_combobox)
+
+        # Engine selection label and multi-select dropdown
+        engine_label = QLabel("Select Engines:", self)
+        engine_label.setFont(QFont("Helvetica", 14))
+        layout.addWidget(engine_label)
+
+        # Create a custom multi-select dropdown with checkboxes for engines
+        self.engine_dropdown = MultiSelectDropdown(list(engine_data.keys()))
+        layout.addWidget(self.engine_dropdown)
+
+        # Plot area
+        self.figure, self.ax = plt.subplots(facecolor='#3B4252')
+        self.ax.set_facecolor('#4C566A')
+        self.canvas = FigureCanvas(self.figure)
+        layout.addWidget(self.canvas)
+
+        # Plot button
+        plot_button = QPushButton("Update Plot")
+        plot_button.clicked.connect(self.plot_selected_engines)
+        layout.addWidget(plot_button)
+
+        self.setLayout(layout)
+
+    def plot_selected_engines(self):
+        # Clear the plot
+        self.ax.clear()
+
+        # Get the selected quantity
+        selected_quantity = self.quantity_combobox.currentText()
+
+        # Get the selected engines
+        selected_engines = self.engine_dropdown.get_selected_items()
+
+        # Plot data for selected engines
+        for engine in selected_engines:
+            if engine in self.engine_data:
+                x = np.arange(len(self.engine_data[engine][selected_quantity]))
+                self.ax.plot(x, self.engine_data[engine][selected_quantity], label=engine)
+
+        # Add legend, labels, and title
+        self.ax.legend(loc="upper left", facecolor='#3B4252', fontsize='small')
+        self.ax.set_xlabel("X Axis", color="white")
+        self.ax.set_ylabel(selected_quantity, color="white")
+        self.ax.set_title(f"Comparison of {selected_quantity}", color="white")
+
+        self.ax.spines['bottom'].set_color('white')
+        self.ax.spines['left'].set_color('white')
+        self.ax.spines['top'].set_color('#4C566A')
+        self.ax.spines['right'].set_color('#4C566A')
+        self.ax.xaxis.label.set_color('white')
+        self.ax.yaxis.label.set_color('white')
+        self.ax.tick_params(axis='x', colors='white')
+        self.ax.tick_params(axis='y', colors='white')
+
+        # Draw the canvas again
+        self.canvas.draw()
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        # Example data: Populate with your actual engine and quantity data
+        self.engine_data = {
+            "Engine 1": {"Quantity 1": np.random.rand(10), "Quantity 2": np.random.rand(10), "Quantity 3": np.random.rand(10)},
+            "Engine 2": {"Quantity 1": np.random.rand(10), "Quantity 2": np.random.rand(10), "Quantity 3": np.random.rand(10)},
+            "Engine 3": {"Quantity 1": np.random.rand(10), "Quantity 2": np.random.rand(10), "Quantity 3": np.random.rand(10)},
+            "Engine 4": {"Quantity 1": np.random.rand(10), "Quantity 2": np.random.rand(10), "Quantity 3": np.random.rand(10)},
+            "Engine 5": {"Quantity 1": np.random.rand(10), "Quantity 2": np.random.rand(10), "Quantity 3": np.random.rand(10)},
+        }
+        self.quantities = ["Quantity 1", "Quantity 2", "Quantity 3"]
+
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle("Main Application")
+        self.setGeometry(100, 100, 800, 600)
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #2E3440;
+            }
+        """)
+
+        # Create a tool bar with toggle switch
+        toolbar = QToolBar("Main Toolbar", self)
+        self.addToolBar(toolbar)
+
+        # Toggle switch for launching the comparison window
+        toggle_button = QPushButton("Open Scenario Comparison")
+        toggle_button.clicked.connect(self.open_scenario_comparison)
+        toolbar.addWidget(toggle_button)
+
+        self.setCentralWidget(QWidget())
+
+    def open_scenario_comparison(self):
+        # Create and open the floating scenario comparison window
+        self.comparison_window = ScenarioComparison(self.engine_data, self.quantities, self)
+        self.comparison_window.show()
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    main_window = MainWindow()
+    main_window.show()
+    sys.exit(app.exec())
