@@ -1,0 +1,180 @@
+import sys
+import numpy as np
+from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QDialog, QSlider, QLabel
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+import matplotlib.pyplot as plt
+
+
+class ScenarioComparison(QDialog):
+    def __init__(self, engine_data, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Scenario Comparison")
+        self.setGeometry(200, 200, 1000, 700)
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #2E3440;
+            }
+            QPushButton {
+                background-color: #5E81AC;
+                color: white;
+                border-radius: 15px;
+                padding: 10px;
+                font-size: 15px;
+            }
+            QPushButton:hover {
+                background-color: #88C0D0;
+            }
+        """)
+
+        self.engine_data = engine_data
+        self.selected_engines = {}
+
+        layout = QVBoxLayout()
+
+        # Add Title
+        title = QLabel("Scenario Comparison", self)
+        title.setFont(QFont("Helvetica", 20))
+        title.setStyleSheet("color: white;")
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
+
+        # Plot Area
+        self.figure, self.ax = plt.subplots(facecolor='#3B4252')
+        self.ax.set_facecolor('#4C566A')
+        self.canvas = FigureCanvas(self.figure)
+        layout.addWidget(self.canvas)
+
+        # Toggle Switches for each engine
+        self.toggle_layout = QHBoxLayout()
+        self.toggles = {}
+
+        for engine in engine_data.keys():
+            toggle_label = QLabel(engine, self)
+            toggle_label.setStyleSheet("color: white;")
+            toggle_label.setFont(QFont("Helvetica", 14))
+
+            toggle_switch = QSlider(Qt.Horizontal, self)
+            toggle_switch.setMinimum(0)
+            toggle_switch.setMaximum(1)
+            toggle_switch.setValue(1)
+            toggle_switch.setFixedWidth(80)
+            toggle_switch.setStyleSheet("""
+                QSlider::groove:horizontal {
+                    background-color: #D8DEE9;
+                    height: 12px;
+                    border-radius: 6px;
+                }
+                QSlider::handle:horizontal {
+                    background-color: #88C0D0;
+                    width: 30px;
+                    height: 30px;
+                    margin: -10px 0px;
+                    border-radius: 15px;
+                }
+                QSlider::handle:horizontal:hover {
+                    background-color: #81A1C1;
+                }
+            """)
+
+            self.toggles[engine] = toggle_switch
+
+            self.toggle_layout.addWidget(toggle_label)
+            self.toggle_layout.addWidget(toggle_switch)
+
+        layout.addLayout(self.toggle_layout)
+
+        # Plot button
+        plot_button = QPushButton("Update Plot")
+        plot_button.clicked.connect(self.plot_selected_engines)
+        layout.addWidget(plot_button)
+
+        self.setLayout(layout)
+
+    def plot_selected_engines(self):
+        # Clear the plot
+        self.ax.clear()
+
+        # Plot selected engines
+        for engine, toggle in self.toggles.items():
+            if toggle.value() == 1:
+                x = np.arange(len(self.engine_data[engine]))
+                self.ax.plot(x, self.engine_data[engine], label=engine)
+
+        # Add legend, labels, and title
+        self.ax.legend(loc="upper left", facecolor='#3B4252', fontsize='small')
+        self.ax.set_xlabel("X Axis", color="white")
+        self.ax.set_ylabel("Y Axis", color="white")
+        self.ax.set_title("Scenario Comparison", color="white")
+
+        self.ax.spines['bottom'].set_color('white')
+        self.ax.spines['left'].set_color('white')
+        self.ax.spines['top'].set_color('#4C566A')
+        self.ax.spines['right'].set_color('#4C566A')
+        self.ax.xaxis.label.set_color('white')
+        self.ax.yaxis.label.set_color('white')
+        self.ax.tick_params(axis='x', colors='white')
+        self.ax.tick_params(axis='y', colors='white')
+
+        # Draw the canvas again
+        self.canvas.draw()
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        # Sample data for engines
+        self.engine_data = {
+            "Engine 1": np.random.rand(10),
+            "Engine 2": np.random.rand(10),
+            "Engine 3": np.random.rand(10),
+            "Engine 4": np.random.rand(10),
+            "Engine 5": np.random.rand(10),
+        }
+
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle("Main Window")
+        self.setGeometry(100, 100, 400, 200)
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #2E3440;
+            }
+            QPushButton {
+                background-color: #5E81AC;
+                color: white;
+                border-radius: 15px;
+                padding: 10px;
+                font-size: 15px;
+            }
+            QPushButton:hover {
+                background-color: #88C0D0;
+            }
+        """)
+
+        # Create a central widget and layout
+        central_widget = QWidget()
+        layout = QVBoxLayout()
+
+        # Button to open the scenario comparison window
+        open_button = QPushButton("Open Scenario Comparison")
+        open_button.clicked.connect(self.open_scenario_comparison)
+        layout.addWidget(open_button)
+
+        central_widget.setLayout(layout)
+        self.setCentralWidget(central_widget)
+
+    def open_scenario_comparison(self):
+        # Create and open the floating scenario comparison window
+        self.comparison_window = ScenarioComparison(self.engine_data, self)
+        self.comparison_window.show()
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    main_window = MainWindow()
+    main_window.show()
+    sys.exit(app.exec())
