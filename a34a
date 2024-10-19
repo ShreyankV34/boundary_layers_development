@@ -1,0 +1,114 @@
+import sys
+import numpy as np
+from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+
+class MplCanvas(FigureCanvas):
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.ax = fig.add_subplot(111)
+        super().__init__(fig)
+        self.setParent(parent)
+
+class PlotWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Discrete Year Locking with Clean Delta Display")
+        self.setGeometry(100, 100, 800, 600)
+
+        # Create a central widget and set a layout
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        self.setCentralWidget(widget)
+
+        # Create a Matplotlib canvas to embed in the PySide6 app
+        self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
+        layout.addWidget(self.canvas)
+
+        # Discrete x data (years like 2034, 2035, 2036, etc.)
+        self.x_data = np.array([2034, 2035, 2036])
+        self.y1 = np.random.randn(len(self.x_data))  # Random data for first curve
+        self.y2 = np.random.randn(len(self.x_data)) * 1.2  # Random data for second curve
+
+        # Plot both curves
+        self.line1, = self.canvas.ax.plot(self.x_data, self.y1, label='Curve 1', color='blue', marker='o', linewidth=2)
+        self.line2, = self.canvas.ax.plot(self.x_data, self.y2, label='Curve 2', color='red', marker='o', linewidth=2)
+
+        # Initial settings for the vertical double-arrow and delta annotation
+        self.vertical_arrow = None
+        self.text_annotation = None
+
+        # Set up title and axis labels
+        self.canvas.ax.set_title("Hover to Lock Vertical Arrow on Years", fontsize=14, fontweight='bold')
+        self.canvas.ax.set_xlabel("Year", fontsize=12)
+        self.canvas.ax.set_ylabel("Value", fontsize=12)
+        self.canvas.ax.grid(True, linestyle='--', alpha=0.7)
+
+        # Add a legend
+        self.canvas.ax.legend(loc="upper right")
+
+        # Connect the hover event to the update function
+        self.canvas.mpl_connect('motion_notify_event', self.on_hover)
+
+        # Redraw the canvas to reflect changes
+        self.canvas.draw()
+
+    def on_hover(self, event):
+        """
+        Handles the mouse hover event and updates the vertical double arrow at discrete years.
+        """
+        if event.xdata is None or event.ydata is None:
+            return  # Ignore if mouse is outside the plot area
+
+        # Find the closest x_data (year) value to the current mouse position
+        index = np.argmin(np.abs(self.x_data - event.xdata))
+
+        # Define a small threshold distance to "lock" the arrow to the year
+        threshold = 0.5  # Half a year distance for locking
+
+        # Update the arrow only if the mouse is near one of the discrete years
+        if abs(self.x_data[index] - event.xdata) < threshold:
+            self.update_vertical_arrow(index)
+
+    def update_vertical_arrow(self, index):
+        """
+        Updates the vertical double-headed arrow and delta at the closest year.
+        """
+        # Get the x value (year) and corresponding y values for both curves at this index
+        x_val = self.x_data[index]
+        y1_val = self.y1[index]
+        y2_val = self.y2[index]
+
+        # Compute the delta between the curves
+        delta = abs(y2_val - y1_val)
+
+        # Remove the previous arrow and annotation if they exist
+        if self.vertical_arrow:
+            self.vertical_arrow.remove()
+        if self.text_annotation:
+            self.text_annotation.remove()
+
+        # Draw a vertical double-headed arrow between the two curves at this year
+        self.vertical_arrow = self.canvas.ax.annotate(
+            '', xy=(x_val, y1_val), xytext=(x_val, y2_val),
+            arrowprops=dict(arrowstyle='<->', lw=2, color='black'),
+        )
+
+        # Place the delta (Δ) to the right of the arrow, without a bounding box
+        mid_y = (y1_val + y2_val) / 2
+        self.text_annotation = self.canvas.ax.text(
+            x_val + 0.2, mid_y, f"Δ = {delta:.2f}",  # Slightly offset to the right of the arrow
+            ha="left", va="center", fontsize=10, color='black'  # No bounding box, clean appearance
+        )
+
+        # Redraw the canvas to reflect changes
+        self.canvas.draw()
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    main_win = PlotWindow()
+    main_win.show()
+    sys.exit(app.exec())
