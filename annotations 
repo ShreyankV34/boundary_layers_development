@@ -1,0 +1,106 @@
+import sys
+import numpy as np
+from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+import matplotlib.patches as patches
+
+
+class MplCanvas(FigureCanvas):
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.ax = fig.add_subplot(111)
+        super().__init__(fig)
+        self.setParent(parent)
+
+
+class PlotWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Dynamic Vertical Arrow Between Curves")
+        self.setGeometry(100, 100, 800, 600)
+
+        # Create a central widget and set a layout
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        self.setCentralWidget(widget)
+
+        # Create a Matplotlib canvas to embed in the PySide6 app
+        self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
+        layout.addWidget(self.canvas)
+
+        # Sample data
+        self.x_data = np.linspace(0, 10, 100)
+        self.y1 = np.sin(self.x_data)
+        self.y2 = np.sin(self.x_data + 0.5) * 1.2
+
+        # Plot data
+        self.line1, = self.canvas.ax.plot(self.x_data, self.y1, label='y1', color='blue', linewidth=2)
+        self.line2, = self.canvas.ax.plot(self.x_data, self.y2, label='y2', color='red', linewidth=2)
+
+        # Add initial vertical arrow and delta display
+        self.vertical_arrow = None
+        self.text_annotation = None
+        self.update_vertical_arrow(50)  # Initial index
+
+        # Customize the grid, labels, and title for a more professional appearance
+        self.canvas.ax.set_title("Dynamic Arrow Showing Delta", fontsize=14, fontweight='bold', color='darkblue')
+        self.canvas.ax.set_xlabel("X-axis", fontsize=12)
+        self.canvas.ax.set_ylabel("Y-axis", fontsize=12)
+        self.canvas.ax.grid(True, linestyle='--', alpha=0.7)
+
+        # Add a legend
+        self.canvas.ax.legend(loc="upper right")
+
+        # Redraw the canvas to reflect changes
+        self.canvas.draw()
+
+    def update_vertical_arrow(self, index):
+        """
+        Updates the vertical arrow between the two curves and shows the delta dynamically.
+        """
+        # Remove the previous arrow and annotation
+        if self.vertical_arrow:
+            self.vertical_arrow.remove()
+        if self.text_annotation:
+            self.text_annotation.remove()
+
+        # Get the X value and Y values for both curves at the given index
+        x_val = self.x_data[index]
+        y1_val = self.y1[index]
+        y2_val = self.y2[index]
+
+        # Compute the delta between the curves
+        delta = abs(y2_val - y1_val)
+
+        # Draw a vertical arrow between the two curves
+        self.vertical_arrow = self.canvas.ax.annotate(
+            '', xy=(x_val, y1_val), xytext=(x_val, y2_val),
+            arrowprops=dict(arrowstyle='<->', lw=2, color='black'),
+        )
+
+        # Display the delta between the two curves
+        mid_y = (y1_val + y2_val) / 2
+        self.text_annotation = self.canvas.ax.text(
+            x_val, mid_y, f"Δ = {delta:.2f}",
+            ha="center", va="center", fontsize=10, bbox=dict(facecolor='white', alpha=0.6)
+        )
+
+        # Redraw the canvas to update the plot
+        self.canvas.draw()
+
+    def keyPressEvent(self, event):
+        """ Allows arrow keys to move the vertical line between curves """
+        key = event.key()
+        if key == "Right":
+            self.update_vertical_arrow(70)  # Example of moving right
+        elif key == "Left":
+            self.update_vertical_arrow(30)  # Example of moving left
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    main_win = PlotWindow()
+    main_win.show()
+    sys.exit(app.exec())
