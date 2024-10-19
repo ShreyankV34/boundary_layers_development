@@ -1,0 +1,180 @@
+import sys
+import numpy as np
+from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+
+class MplCanvas(FigureCanvas):
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.ax = fig.add_subplot(111)
+        super().__init__(fig)
+        self.setParent(parent)
+
+class PlotWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Improved Delta Annotations for Reference vs C1, C2, C3, C4 with Slim Dotted Lines")
+        self.setGeometry(100, 100, 800, 600)
+
+        # Create a central widget and set a layout
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        self.setCentralWidget(widget)
+
+        # Create a Matplotlib canvas to embed in the PySide6 app
+        self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
+        layout.addWidget(self.canvas)
+
+        # Discrete x data (years from 2016 to 2070)
+        self.x_data = np.arange(2016, 2071, 1)  # Years with unit increment (2016, 2017, ..., 2070)
+
+        # Generate log-diverging curves for Reference and C1, C2, C3, C4
+        self.y_ref = np.log(self.x_data - 2015)  # Reference curve (logarithmic)
+        self.y_c1 = self.y_ref + 0.2 * np.log(self.x_data - 2015 + 1)  # C1 (slightly diverging)
+        self.y_c2 = self.y_ref + 0.4 * np.log(self.x_data - 2015 + 2)  # C2
+        self.y_c3 = self.y_ref + 0.6 * np.log(self.x_data - 2015 + 3)  # C3
+        self.y_c4 = self.y_ref + 0.8 * np.log(self.x_data - 2015 + 4)  # C4
+
+        # Plot the curves
+        self.line_ref, = self.canvas.ax.plot(self.x_data, self.y_ref, label='Reference', color='black', linewidth=2)
+        self.line_c1, = self.canvas.ax.plot(self.x_data, self.y_c1, label='C1', color='blue', linewidth=2)
+        self.line_c2, = self.canvas.ax.plot(self.x_data, self.y_c2, label='C2', color='red', linewidth=2)
+        self.line_c3, = self.canvas.ax.plot(self.x_data, self.y_c3, label='C3', color='orange', linewidth=2)
+        self.line_c4, = self.canvas.ax.plot(self.x_data, self.y_c4, label='C4', color='green', linewidth=2)
+
+        # Initial settings for the vertical double-arrow and delta annotations
+        self.vertical_arrows = []  # Store multiple vertical arrows (for each comparison)
+        self.text_annotations = []  # Store multiple delta annotations
+        self.static_arrows = []  # Static delta arrows
+        self.static_annotations = []  # Static delta annotations
+
+        # Set up title and axis labels
+        self.canvas.ax.set_title("Improved Delta Annotations for Reference vs C1, C2, C3, C4", fontsize=14, fontweight='bold')
+        self.canvas.ax.set_xlabel("Year", fontsize=12)
+        self.canvas.ax.set_ylabel("Value (Log Scale)", fontsize=12)
+        self.canvas.ax.grid(True, linestyle='--', alpha=0.7)
+
+        # Set x-ticks as every year and rotate the labels for better visibility
+        self.canvas.ax.set_xticks(self.x_data)  # Display all years on the x-axis
+        self.canvas.ax.tick_params(axis='x', rotation=45)  # Rotate the year labels by 45 degrees
+
+        # Add a legend
+        self.canvas.ax.legend(loc="upper left")
+
+        # Connect the hover event to the update function
+        self.canvas.mpl_connect('motion_notify_event', self.on_hover)
+
+        # Connect the mouse click event to add static deltas
+        self.canvas.mpl_connect('button_press_event', self.on_click)
+
+        # Redraw the canvas to reflect changes
+        self.canvas.draw()
+
+    def on_hover(self, event):
+        """
+        Handles the mouse hover event and updates the vertical double arrow at discrete years.
+        """
+        if event.xdata is None or event.ydata is None:
+            return  # Ignore if mouse is outside the plot area
+
+        # Find the closest x_data (year) value to the current mouse position
+        index = np.argmin(np.abs(self.x_data - event.xdata))
+
+        # Define a small threshold distance to "lock" the arrow to the year
+        threshold = 0.5  # Half a year distance for locking
+
+        # Update the arrows and annotations only if the mouse is near one of the discrete years
+        if abs(self.x_data[index] - event.xdata) < threshold:
+            self.update_vertical_arrows(index)
+
+    def update_vertical_arrows(self, index):
+        """
+        Updates the vertical arrows and delta annotations for Reference vs C1, C2, C3, C4.
+        """
+        # Get the x value (year) and corresponding y values for Reference and the comparison curves
+        x_val = self.x_data[index]
+        y_ref = self.y_ref[index]
+        y_values = [self.y_c1[index], self.y_c2[index], self.y_c3[index], self.y_c4[index]]
+        labels = ['C1', 'C2', 'C3', 'C4']
+        colors = ['blue', 'red', 'orange', 'green']
+
+        # Clear previous arrows and annotations
+        for arrow in self.vertical_arrows:
+            arrow.remove()
+        for text in self.text_annotations:
+            text.remove()
+        self.vertical_arrows.clear()
+        self.text_annotations.clear()
+
+        # Offset arrows slightly to avoid overlap (spread them on the x-axis)
+        offsets = [-0.1, 0.1, 0.2, 0.3]  # Slight horizontal offsets for cleaner appearance
+
+        # Loop through the comparison curves (C1 to C4) and plot the arrows and deltas
+        for i, y_val in enumerate(y_values):
+            # Draw a vertical double-headed arrow between the Reference curve and the current curve
+            arrow = self.canvas.ax.annotate(
+                '', xy=(x_val + offsets[i], y_ref), xytext=(x_val + offsets[i], y_val),
+                arrowprops=dict(arrowstyle='<->', lw=2, color=colors[i]),
+            )
+            self.vertical_arrows.append(arrow)
+
+            # Compute the delta and place the annotation to the right of the arrow
+            delta = abs(y_ref - y_val)
+            mid_y = (y_ref + y_val) / 2
+            text = self.canvas.ax.text(
+                x_val + offsets[i] + 0.2, mid_y, f"Δ {labels[i]} = {delta:.2f}",  # Slightly offset to the right of the arrow
+                ha="left", va="center", fontsize=10, color=colors[i]
+            )
+            self.text_annotations.append(text)
+
+        # Redraw the canvas to reflect changes
+        self.canvas.draw()
+
+    def on_click(self, event):
+        """
+        Handles mouse click event to create static delta annotations.
+        """
+        if event.xdata is None or event.ydata is None:
+            return  # Ignore if click is outside the plot area
+
+        # Find the closest x_data (year) value to the clicked position
+        index = np.argmin(np.abs(self.x_data - event.xdata))
+
+        # Get the x value (year) and corresponding y values for Reference and the comparison curves
+        x_val = self.x_data[index]
+        y_ref = self.y_ref[index]
+        y_values = [self.y_c1[index], self.y_c2[index], self.y_c3[index], self.y_c4[index]]
+        labels = ['C1', 'C2', 'C3', 'C4']
+        colors = ['blue', 'red', 'orange', 'green']
+
+        # Offset the static arrows slightly to avoid overlap (similar to hover arrows)
+        offsets = [-0.15, 0.05, 0.25, 0.45]  # Slight horizontal offsets for static arrows
+
+        # Loop through the comparison curves (C1 to C4) and plot static delta annotations
+        for i, y_val in enumerate(y_values):
+            # Draw a vertical double-headed arrow between the Reference curve and the current curve
+            arrow = self.canvas.ax.annotate(
+                '', xy=(x_val + offsets[i], y'', xy=(x_val + offsets[i], y_ref), xytext=(x_val + offsets[i], y_val),
+                arrowprops=dict(arrowstyle='<->', lw=1.5, color=colors[i], linestyle='dotted'),  # Slim, bright dotted lines
+            )
+            self.static_arrows.append(arrow)
+
+            # Compute the delta and place the static annotation next to the arrow
+            delta = abs(y_ref - y_val)
+            mid_y = (y_ref + y_val) / 2
+            static_text = self.canvas.ax.text(
+                x_val + offsets[i] + 0.2, mid_y, f"Δ {labels[i]} = {delta:.2f} (Static)",  # Static annotation
+                ha="left", va="center", fontsize=10, color=colors[i]
+            )
+            self.static_annotations.append(static_text)
+
+        # Redraw the canvas to reflect changes
+        self.canvas.draw()
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    main_win = PlotWindow()
+    main_win.show()
+    sys.exit(app.exec())
