@@ -1,0 +1,13 @@
+Engaging with Mentorship and Peer Collaboration:
+I will seek mentorship from experienced professionals in software development and GUI design to gain insights and feedback on my work. Additionally, I aim to participate in collaborative coding projects or open-source initiatives where I can work with peers and industry experts to broaden my perspective and refine my technical and problem-solving skills.
+
+1. Continuous Learning through Professional Courses
+I have been actively engaging in online courses to expand my technical skill set. Through platforms like LinkedIn Learning and other professional resources, I have completed courses in advanced Python programming, software development best practices, and GUI development. These courses have provided me with deeper insights into writing efficient code, designing user-friendly interfaces, and mastering the fundamentals of full-stack software development.
+
+
+2. CFD (Computational Fluid Dynamics) Training
+Additionally, I have pursued specialized CFD courses to strengthen my understanding of aero thermal fluids and their simulation, which has been critical for my domain expertise. These courses have helped me integrate theoretical knowledge into practical coding applications, allowing me to work on projects that involve complex fluid dynamics analysis, further expanding my ability to develop sophisticated tools for domain-specific applications.
+
+
+3. Sideways Training in Software Development and Tool Building
+Beyond formal courses, I’ve taken the initiative to learn sideways, exploring areas like object-oriented programming, debugging, and version control through self-study and hands-on practice. This training has enabled me to build more scalable, maintainable, and efficient software. It also allows me to collaborate effectively in a team setting, using tools like Git for version control and project management.
