@@ -1,0 +1,215 @@
+import sys
+import numpy as np
+from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+
+class MplCanvas(FigureCanvas):
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.ax = fig.add_subplot(111)
+        super().__init__(fig)
+        self.setParent(parent)
+
+class DeltaPlotter:
+    def __init__(self, canvas, x_data, curves, curve_labels, colors):
+        """
+        Initializes the DeltaPlotter with a canvas, x_data (years), and multiple curves to plot.
+        """
+        self.canvas = canvas
+        self.ax = canvas.ax
+        self.x_data = x_data
+        self.curves = curves  # List of y-data for curves
+        self.curve_labels = curve_labels  # Labels for the curves
+        self.colors = colors  # Colors for the curves
+        self.vertical_arrows = []
+        self.text_annotations = []
+        self.static_arrows = []
+        self.static_annotations = []
+
+    def plot_curves(self):
+        """
+        Plots all the curves on the canvas.
+        """
+        for i, y_data in enumerate(self.curves):
+            self.ax.plot(self.x_data, y_data, label=self.curve_labels[i], color=self.colors[i], linewidth=2)
+
+        # Set up axis labels and grid
+        self.ax.set_xlabel("Year", fontsize=12)
+        self.ax.set_ylabel("Value (Log Scale)", fontsize=12)
+        self.ax.grid(True, linestyle='--', alpha=0.7)
+        self.ax.legend(loc="upper left")
+
+    def update_vertical_arrows(self, index):
+        """
+        Updates the vertical arrows and delta annotations dynamically when hovering.
+        """
+        x_val = self.x_data[index]
+        y_ref = self.curves[0][index]  # Reference curve is the first one
+        y_values = self.curves[1:]  # Comparison curves
+        labels = self.curve_labels[1:]  # Labels for the comparison curves
+        colors = self.colors[1:]  # Colors for the comparison curves
+
+        # Clear previous arrows and annotations
+        for arrow in self.vertical_arrows:
+            arrow.remove()
+        for text in self.text_annotations:
+            text.remove()
+        self.vertical_arrows.clear()
+        self.text_annotations.clear()
+
+        offsets = [-0.1, 0.1, 0.2, 0.3]  # Slight horizontal offsets to avoid overlap
+
+        for i, y_val in enumerate(y_values):
+            arrow = self.ax.annotate(
+                '', xy=(x_val + offsets[i], y_ref), xytext=(x_val + offsets[i], y_val),
+                arrowprops=dict(arrowstyle='<->', lw=2, color=colors[i]),
+            )
+            self.vertical_arrows.append(arrow)
+
+            delta = abs(y_ref - y_val)
+            mid_y = (y_ref + y_val) / 2
+            text = self.ax.text(
+                x_val + offsets[i] + 0.2, mid_y, f"Δ {labels[i]} = {delta:.2f}",
+                ha="left", va="center", fontsize=10, color=colors[i], bbox=dict(facecolor='white', alpha=0.6)
+            )
+            text.draggable(True)  # Make the annotation draggable
+            self.text_annotations.append(text)
+
+        self.canvas.draw()
+
+    def add_static_annotation(self, index):
+        """
+        Adds a static delta annotation when clicking.
+        """
+        x_val = self.x_data[index]
+        y_ref = self.curves[0][index]  # Reference curve is the first one
+        y_values = self.curves[1:]  # Comparison curves
+        labels = self.curve_labels[1:]  # Labels for the comparison curves
+        colors = self.colors[1:]  # Colors for the comparison curves
+
+        offsets = [-0.15, 0.05, 0.25, 0.45]
+
+        for i, y_val in enumerate(y_values):
+            arrow = self.ax.annotate(
+                '', xy=(x_val + offsets[i], y_ref), xytext=(x_val + offsets[i], y_val),
+                arrowprops=dict(arrowstyle='<->', lw=1.5, color=colors[i], linestyle='dotted'),
+            )
+            self.static_arrows.append(arrow)
+
+            delta = abs(y_ref - y_val)
+            mid_y = (y_ref + y_val) / 2
+            static_text = self.ax.text(
+                x_val + offsets[i] + 0.2, mid_y, f"Δ {labels[i]} = {delta:.2f} (Static)",
+                ha="left", va="center", fontsize=10, color=colors[i], bbox=dict(facecolor='white', alpha=0.6)
+            )
+            static_text.draggable(True)
+            self.static_annotations.append(static_text)
+
+        self.canvas.draw()
+
+    def delete_static_arrow(self, event):
+        """
+        Deletes the static arrow and annotation closest to the click position.
+        """
+        if not self.static_arrows or not self.static_annotations:
+            return  # No static arrows or annotations to delete
+
+        # Find the closest static annotation to the click position
+        min_distance = float('inf')
+        closest_index = -1
+        for i, static_text in enumerate(self.static_annotations):
+            # Compute the distance between the click position and the annotation position
+            text_x, text_y = static_text.get_position()
+            distance = np.sqrt((text_x - event.xdata) ** 2 + (text_y - event.ydata) ** 2)
+
+            # Update the closest index if this distance is smaller
+            if distance < min_distance:
+                min_distance = distance
+                closest_index = i
+
+        # If a close enough annotation is found, remove it
+        if closest_index >= 0 and min_distance < 0.1:  # Threshold distance (adjustable)
+            # Remove the static arrow and annotation
+            self.static_arrows[closest_index].remove()
+            self.static_annotations[closest_index].remove()
+
+            # Remove them from the lists
+            del self.static_arrows[closest_index]
+            del self.static_annotations[closest_index]
+
+            # Redraw the canvas to reflect the changes
+            self.canvas.draw()
+
+class PlotWindow(QMainWindow):
+    def __init__(self, x_data, curves, labels, colors):
+        super().__init__()
+
+        self.setWindowTitle("Modular Delta Plotter with Draggable Feature")
+        self.setGeometry(100, 100, 800, 600)
+
+        # Create a central widget and set a layout
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        self.setCentralWidget(widget)
+
+        # Create a Matplotlib canvas to embed in the PySide6 app
+        self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
+        layout.addWidget(self.canvas)
+
+        # Create a DeltaPlotter instance
+        self.plotter = DeltaPlotter(self.canvas, x_data, curves, labels, colors)
+
+        # Plot the curves
+        self.plotter.plot_curves()
+
+        # Connect the hover event to the update function
+        self.canvas.mpl_connect('motion_notify_event', self.on_hover)
+
+        # Connect the click event to add or remove static delta annotations
+        self.canvas.mpl_connect('button_press_event', self.on_click)
+
+        self.canvas.draw()
+
+    def on_hover(self, event):
+        """
+        Handles mouse hover event to dynamically show deltas.
+        """
+        if event.xdata is None:
+            return
+
+        index = np.argmin(np.abs(self.plotter.x_data - event.xdata))
+        self.plotter.update_vertical_arrows(index)
+
+    def on_click(self, event):
+        """
+        Handles mouse click event to either add or delete static delta annotations based on Shift-click.
+        """
+        if event.xdata is None or event.ydata is None:
+            return
+
+        # Check if Shift is pressed for deletion
+        if event.key == 'shift':  # Check if Shift key is held
+            self.plotter.delete_static_arrow(event)  # Call to delete static arrow
+        else:
+            # Normal click adds static delta annotation
+            index = np.argmin(np.abs(self.plotter.x_data - event.xdata))
+            self.plotter.add_static_annotation(index)
+
+
+# The reusable function where you can pass any set of curves, labels, and colors
+def plot_with_deltas(x_data, curves, labels, colors):
+    app = QApplication(sys.argv)
+    main_win = PlotWindow(x_data, curves, labels, colors)
+    main_win.show()
+    sys.exit(app.exec())
+
+if __name__ == "__main__":
+    # Example usage
+    x_data = np.arange(2016, 2071, 1)
+
+    # Example curves: Reference and C1, C2, C3, C4 (logarithmic curves)
+    y_ref = np.log(x_data - 2015)
+    y_c1 = y_ref + 0.2 * np.log(x_data - 2015 + 1)
+    y_c2 = y_ref + 0.4 * np.log(x_data - 2015 + 2)
+    y_c3 = y_ref + 0.6 * np.log(x_data - 2015 + 3)
