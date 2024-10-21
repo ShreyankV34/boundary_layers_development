@@ -1,0 +1,35 @@
+1. Goal Progress:
+
+In the past period, I made significant progress in multiple areas related to both subject matter knowledge and technical development. I successfully learned Python programming alongside various packages required for project implementation. This includes GUI development using PySide6 for user-friendly interfaces, and I developed a custom tool named BENTO, which focuses on emission projection and visualization. The tool integrates various data sets, making it easier to interpret and visualize trends. My focus has been on honing skills that are crucial for creating impactful tools for business decision-making.
+
+2. Strengths and Development Opportunities:
+
+Strengths:
+
+Technical Acumen: I demonstrated solid technical growth by learning and applying Python, GUI frameworks, and relevant libraries in a practical project like BENTO.
+
+Subject Matter Expertise: My understanding of emission trends and data visualization has deepened, allowing me to develop more meaningful, impactful tools.
+
+Problem-Solving: I’m comfortable with complex problem-solving, integrating different elements of programming, data analysis, and visualization into cohesive tools.
+
+
+Development Opportunities:
+
+Advanced Python Practices: While I’ve gained proficiency, there are opportunities to refine my skills in more advanced Python topics, like optimizing performance or exploring machine learning models for emissions forecasting.
+
+User Experience in GUI: While the GUI I developed is functional, enhancing my skills in user experience (UX) design will help make future tools more intuitive and user-friendly.
+
+Collaborative Development: Engaging more in collaborative coding environments like version control systems (e.g., Git) and pair programming would allow me to scale my development process in a team-oriented way.
+
+
+3. Development Actions:
+
+Advanced Learning in Python & Machine Learning: I plan to enroll in advanced Python courses and tutorials that focus on optimization and machine learning, especially for emissions forecasting, which would expand BENTO’s capabilities.
+
+UI/UX Workshops: I aim to attend UX design workshops to improve the visual aspects and usability of the tools I develop. This will ensure that future projects are not only powerful but also user-friendly.
+
+Collaboration & Version Control: I will incorporate tools like Git into my workflow and engage more in collaborative coding exercises. This will improve my ability to work efficiently in team environments and ensure that the development process is streamlined.
+
+
+Does this align with your thoughts? Let me know if you need any more keywords or specifics added!
+
