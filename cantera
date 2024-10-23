@@ -1,0 +1,120 @@
+import sys
+import cantera as ct
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from PySide6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QSlider, QLabel
+
+# NozzleSimulation class for Cantera simulation
+class NozzleSimulation:
+    def __init__(self, gas_composition='O2:1, N2:3.76', inlet_temp=300.0, inlet_pressure=101325.0):
+        self.gas = ct.Solution('gri30.yaml')
+        self.gas.TPX = inlet_temp, inlet_pressure, gas_composition
+
+    def run_simulation(self, inlet_area, exit_area, mass_flow_rate):
+        # Define the flow rate and nozzle geometry
+        mass_flow_rate = mass_flow_rate  # in kg/s
+        nozzle_area_ratio = exit_area / inlet_area
+        
+        # Calculate nozzle flow properties using Cantera's isentropic flow function
+        state = self.gas.state
+        p_ratio = state.P / inlet_area
+        mach_exit = ct.isentropic_flow(p_ratio)
+        
+        # Return the Mach number, exit velocity, and pressure
+        return {
+            'mach_exit': mach_exit,
+            'velocity_exit': self.gas.u,
+            'pressure_exit': self.gas.P,
+        }
+
+# ControlPanel class for managing inputs and simulation controls
+class ControlPanel(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.simulation = NozzleSimulation()
+        
+        layout = QVBoxLayout()
+        
+        self.inlet_temp_slider = QSlider()
+        self.inlet_temp_label = QLabel('Inlet Temperature')
+        layout.addWidget(self.inlet_temp_label)
+        layout.addWidget(self.inlet_temp_slider)
+
+        self.simulate_button = QPushButton("Run Simulation")
+        layout.addWidget(self.simulate_button)
+        
+        self.setLayout(layout)
+
+    def get_parameters(self):
+        # Extract values from sliders (in a real case, add more parameters)
+        return {
+            'inlet_temp': self.inlet_temp_slider.value(),
+            'mass_flow_rate': 1.0,  # Example value
+            'inlet_area': 1.0,      # Example value
+            'exit_area': 1.5        # Example value
+        }
+
+# FlowVisualization class for visualizing the simulation results
+class FlowVisualization(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        layout = QVBoxLayout()
+        
+        # Initialize Matplotlib figure for 2D visualization
+        self.figure, self.ax = plt.subplots()
+        self.canvas = FigureCanvas(self.figure)
+        layout.addWidget(self.canvas)
+        
+        self.setLayout(layout)
+
+    def update_plot(self, results):
+        self.ax.clear()
+        mach = results['mach_exit']
+        velocity = results['velocity_exit']
+        pressure = results['pressure_exit']
+        
+        # Plot Mach, velocity, and pressure (dummy data for example)
+        self.ax.plot([0, 1], [mach, mach], label='Mach Number')
+        self.ax.plot([0, 1], [velocity, velocity], label='Velocity')
+        self.ax.plot([0, 1], [pressure, pressure], label='Pressure')
+        
+        self.ax.legend()
+        self.canvas.draw()
+
+# MainWindow class for the main PySide6 window
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Fluidic Simulation GUI")
+        
+        # Create central widget and layout
+        central_widget = QWidget()
+        layout = QVBoxLayout(central_widget)
+        
+        # Add control panel (sliders, buttons, etc.) and visualization
+        self.control_panel = ControlPanel(self)
+        self.visualization = FlowVisualization(self)
+
+        layout.addWidget(self.control_panel)
+        layout.addWidget(self.visualization)
+        self.setCentralWidget(central_widget)
+        
+        # Connect simulation controls to the visualization
+        self.control_panel.simulate_button.clicked.connect(self.start_simulation)
+
+    def start_simulation(self):
+        # Run the simulation and update the visualization
+        parameters = self.control_panel.get_parameters()
+        results = self.control_panel.simulation.run_simulation(**parameters)
+        self.visualization.update_plot(results)
+
+# Run the PySide6 application
+def run_app():
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec())
+
+if __name__ == '__main__':
+    run_app()
