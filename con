@@ -1,0 +1,68 @@
+# Import necessary libraries from pycontrails
+from pycontrails.datalib.ecmwf import ERA5
+from pycontrails.models.cocip import Cocip
+from pycontrails import Flight
+from pycontrails.models.humidity_scaling import ConstantHumidityScaling
+
+import numpy as np
+import pandas as pd
+
+# Step 1: Set up the time period and pressure levels for the meteorological data
+time_bounds = ("2022-03-01 00:00:00", "2022-03-01 23:00:00")
+pressure_levels = [300, 250, 200]
+
+# Step 2: Download ERA5 data for the specified time bounds and variables
+# Initialize the ERA5 object for pressure levels and surface level data
+era5pl = ERA5(
+    time=time_bounds,
+    variables=Cocip.met_variables + Cocip.optional_met_variables,
+    pressure_levels=pressure_levels,
+)
+era5sl = ERA5(time=time_bounds, variables=Cocip.rad_variables)
+
+# Download the meteorological datasets or open them from cache
+met = era5pl.open_metdataset()
+rad = era5sl.open_metdataset()
+
+# Step 3: Define synthetic flight data with required attributes
+flight_attrs = {
+    "flight_id": "test",
+    "true_airspeed": 226.1,  # in m/s
+    "thrust": 0.22,
+    "nvpm_ei_n": 1.897462e15,
+    "aircraft_type": "E190",
+    "wingspan": 48,  # in meters
+    "n_engine": 2,
+}
+
+# Define flight path as a DataFrame with longitude, latitude, altitude, and time
+df = pd.DataFrame({
+    "longitude": np.linspace(-25, -40, 100),
+    "latitude": np.linspace(34, 40, 100),
+    "altitude": np.full(100, 10900),  # altitude in meters
+    "engine_efficiency": np.linspace(0.34, 0.35, 100),
+    "fuel_flow": np.linspace(2.1, 2.4, 100),  # fuel flow in kg/s
+    "aircraft_mass": np.linspace(154445, 154345, 100),  # aircraft mass in kg
+    "time": pd.date_range("2022-03-01T00:15:00", "2022-03-01T02:30:00", periods=100),
+})
+
+# Initialize the Flight object with flight data and attributes
+flight = Flight(df, attrs=flight_attrs)
+
+# Step 4: Initialize the CoCiP model with meteorological data and parameters
+params = {
+    "dt_integration": np.timedelta64(10, "m"),  # integration timestep
+    "humidity_scaling": ConstantHumidityScaling(rhi_adj=0.99),  # humidity scaling parameter
+}
+cocip = Cocip(met=met, rad=rad, params=params)
+
+# Step 5: Run the CoCiP model on the flight data
+output_flight = cocip.eval(source=flight)
+
+# Step 6: Extract and display the results
+# Convert the output flight data to a DataFrame and print the first few rows
+df_result = output_flight.dataframe
+print(df_result.head())
+
+# Optional: Save the results to a CSV file
+df_result.to_csv("cocip_model_output.csv", index=False)
