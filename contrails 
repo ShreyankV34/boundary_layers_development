@@ -1,0 +1,6 @@
+met = ERA5(
+    time_bounds, 
+    pressure_levels=pressure_levels, 
+    variables=CocipGrid.met_variables,
+    url="https://cds.climate.copernicus.eu/api/v2/resources/reanalysis-era5-pressure-levels"
+)
