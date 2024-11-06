@@ -1,0 +1,94 @@
+import os
+import shutil
+import pandas as pd
+import qtawesome as qta  # Assuming you're using qtawesome for icons
+
+class ProjectNode(BentoBaseNode):
+    def __init__(self, project_name, base_dir=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Use the current working directory if no base directory is specified
+        self.base_dir = base_dir or os.getcwd()
+        
+        # Define the project directory dynamically based on the base directory
+        self.project_dir = os.path.join(self.base_dir, project_name)
+        self.setText(0, project_name)
+        
+        # Create the project directory
+        os.makedirs(self.project_dir, exist_ok=True)
+
+    def add_engine(self, engine_name):
+        """Adds an engine node under the project."""
+        engine_node = EngineNode(engine_name, project_dir=self.project_dir)
+        self.addChild(engine_node)
+        return engine_node
+
+class EngineNode(BentoBaseNode):
+    def __init__(self, engine_name, project_dir, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Set up engine directory under the project directory
+        self.engine_dir = os.path.join(project_dir, engine_name)
+        self.setText(0, engine_name)
+        
+        # Create subdirectories for Mission, Utilization, and Forecast
+        self.mission_dir = os.path.join(self.engine_dir, "Mission")
+        self.utilization_dir = os.path.join(self.engine_dir, "Utilization")
+        self.forecast_dir = os.path.join(self.engine_dir, "Forecast")
+        
+        os.makedirs(self.mission_dir, exist_ok=True)
+        os.makedirs(self.utilization_dir, exist_ok=True)
+        os.makedirs(self.forecast_dir, exist_ok=True)
+
+    def add_mission_file(self, file_path):
+        """Adds a mission file to the mission directory, copying it for processing."""
+        mission_node = MissionNodeChild(file_path=file_path, mission_dir=self.mission_dir)
+        self.addChild(mission_node)
+
+class MissionNodeChild(BentoBaseNode):
+    def __init__(self, file_path, mission_dir, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Set icons for the node
+        self.setIcon(0, qta.icon("fa.pie-chart", color=("purple", 256)))
+        self.setIcon(1, qta.icon("fa5s.file-csv", color=("black")))
+        
+        # Copy the file to the Mission directory and store the copied path
+        self.copied_file_path = self.copy_file_to_directory(file_path, mission_dir)
+        
+        # Set the node text to the copied file's name
+        self.setText(1, os.path.basename(self.copied_file_path))
+        
+        # Validate and process the copied file
+        if self.validate_file(self.copied_file_path):
+            self.process_file(self.copied_file_path)
+        else:
+            print(f"Validation failed for {self.copied_file_path}")
+
+    def copy_file_to_directory(self, file_path, target_dir):
+        """Copies the file to the target directory and returns the path of the copied file."""
+        os.makedirs(target_dir, exist_ok=True)
+        file_name = os.path.basename(file_path)
+        copied_file_path = os.path.join(target_dir, file_name)
+        shutil.copy(file_path, copied_file_path)
+        print(f"File copied to: {copied_file_path}")
+        return copied_file_path
+
+    def validate_file(self, file_path):
+        """Validates the Mission file to ensure it has the correct columns."""
+        expected_columns = ["Mission segment", "Time", "P3_const", "T3_const", "SPHUM_const", "SPHUM", "FAR4", "WF"]
+        try:
+            df = pd.read_csv(file_path)
+            missing_columns = [col for col in expected_columns if col not in df.columns]
+            if missing_columns:
+                print(f"Missing columns in Mission file: {missing_columns}")
+                return False
+            return True
+        except Exception as e:
+            print(f"Error reading file: {e}")
+            return False
+
+    def process_file(self, file_path):
+        """Placeholder for processing the file."""
+        print(f"Processing file: {file_path}")
+        # Add your data processing logic here
