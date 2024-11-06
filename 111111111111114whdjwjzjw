@@ -1,0 +1,49 @@
+import os
+import shutil
+import qtawesome as qta  # Assuming qtawesome is being used for icons
+
+class MissionNodeChild(BentoBaseNode):
+    def __init__(self, name=None, project_dir=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Set icons for the node
+        icon = qta.icon("fa.pie-chart", color=("purple", 256))
+        self.setIcon(0, icon)
+        icon = qta.icon("fa5s.file-csv", color=("black"))
+        self.setIcon(1, icon)
+        
+        # Set the text for the node to display the file name
+        self.setText(1, name)
+        
+        # Set the Mission directory within the engine folder
+        self.mission_dir = os.path.join(project_dir, "Mission")
+        
+        # Ensure the Mission directory exists
+        os.makedirs(self.mission_dir, exist_ok=True)
+        
+        # Copy the file to the Mission directory
+        self.copy_file_to_mission(name)
+
+        # Set up other properties (as per your original code)
+        filename = os.path.basename(name)
+        mission_time = float(''.join(filter(str.isdigit, filename)))
+        self.setText(0, str(int(mission_time)) + " hr Mission")
+        
+        self.treeWidget().expandAll()
+        self.treeWidget().resizeColumnToContents(0)
+        self.treeWidget().resizeColumnToContents(1)
+        
+        engine_emission_eq = self.parent().parent().engine.emission_class
+        self.mission = BENTOMission(mission_time, name, engine_emission_eq)
+        self.fig = None
+        self.widget = None
+
+    def copy_file_to_mission(self, file_path):
+        """Copies the uploaded file to the Mission directory within the engine."""
+        # Get the file name and construct the target path within Mission directory
+        file_name = os.path.basename(file_path)
+        target_path = os.path.join(self.mission_dir, file_name)
+        
+        # Copy the file
+        shutil.copy(file_path, target_path)
+        print(f"File copied to: {target_path}")
