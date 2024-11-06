@@ -1,0 +1,98 @@
+import os
+import shutil
+import pandas as pd
+
+class EngineFileManager:
+    # Expected columns for validation for each file type
+    expected_columns = {
+        "Mission": ["Mission segment", "Time", "P3_const", "T3_const", "SPHUM_const", "SPHUM", "FAR4", "WF"],
+        "Utilization": ["Mission", "Engine name"],
+        "Forecasts": ["Year", "Deliveries", "EFH per Engine"]
+    }
+
+    def __init__(self, study_name, project_name, engine_name):
+        self.study_name = study_name
+        self.project_name = project_name
+        self.engine_name = engine_name
+        self.base_dir = os.path.join(os.getcwd(), "Study", self.study_name, self.project_name, self.engine_name)
+        self.subfolders = {"Mission": "Mission", "Utilization": "Utilization", "Forecasts": "Forecasts"}
+        self._create_directory_structure()
+
+    def _create_directory_structure(self):
+        """Creates the directory structure for the study, project, and engine if it doesn't exist."""
+        for subfolder in self.subfolders.values():
+            path = os.path.join(self.base_dir, subfolder)
+            os.makedirs(path, exist_ok=True)
+
+    def validate_file(self, file_path, file_type):
+        """
+        Validates that the file has the correct structure based on the file type.
+        Checks for required columns and returns a message based on the validation outcome.
+        """
+        # Check if file type is valid
+        if file_type not in self.expected_columns:
+            return False, "Invalid file type. Must be one of: Mission, Utilization, Forecasts."
+        
+        # Attempt to read the file as a DataFrame to validate columns
+        try:
+            df = pd.read_csv(file_path)
+            missing_columns = [col for col in self.expected_columns[file_type] if col not in df.columns]
+            if missing_columns:
+                return False, f"File is missing required columns for {file_type}: {missing_columns}."
+            return True, f"{file_type} file validated successfully."
+        except Exception as e:
+            return False, f"Error reading file: {str(e)}"
+
+    def upload_file(self, file_path, file_type):
+        """
+        Uploads a file to the appropriate subfolder (Mission, Utilization, Forecasts) after validation.
+        Returns validation feedback for the GUI.
+        """
+        # Validate the file
+        is_valid, message = self.validate_file(file_path, file_type)
+        if not is_valid:
+            return message  # Return validation message if file is not valid
+
+        # Proceed with file upload if valid
+        target_folder = os.path.join(self.base_dir, self.subfolders[file_type])
+        file_name = os.path.basename(file_path)
+        target_path = os.path.join(target_folder, file_name)
+
+        shutil.copy(file_path, target_path)
+        return f"File '{file_name}' successfully uploaded to {file_type} folder."
+
+    def display_directory_structure(self):
+        """Displays the contents of each subfolder in the engine directory for verification."""
+        print(f"\nDirectory structure for engine '{self.engine_name}' in project '{self.project_name}' under study '{self.study_name}':")
+        for file_type, subfolder in self.subfolders.items():
+            folder_path = os.path.join(self.base_dir, subfolder)
+            files = os.listdir(folder_path)
+            print(f" - {file_type} folder: {files if files else 'No files'}")
+
+
+# Usage Example (For Integration in GUI)
+def main():
+    # Initialize with study, project, and engine names
+    study_name = input("Enter the study name: ")
+    project_name = input("Enter the project name: ")
+    engine_name = input("Enter the engine name: ")
+
+    # Create an instance of the manager
+    manager = EngineFileManager(study_name, project_name, engine_name)
+    
+    # Upload files with validation feedback
+    while True:
+        file_path = input("Enter the full path of the file to upload (or type 'done' to finish): ")
+        if file_path.lower() == 'done':
+            break
+        file_type = input("Enter the file type (Mission/Utilization/Forecasts): ")
+        
+        # Perform upload and get validation feedback
+        feedback = manager.upload_file(file_path, file_type)
+        print(feedback)  # This would be shown in the GUI as feedback to the user
+    
+    # Display directory structure for verification
+    manager.display_directory_structure()
+
+if __name__ == "__main__":
+    main()
