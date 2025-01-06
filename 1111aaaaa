@@ -1,0 +1,23 @@
+from ansys.fluent.core import launch_fluent
+
+# Launch Fluent in solver mode with 3D settings
+fluent = launch_fluent(mode="solver", dimension="3", processor_count=4)
+
+# Define file paths (update these paths to your actual file locations)
+case_file = "D:\\PyFluent\\24K_1Btip_PyFluent_example_EAR9E991\\Finished-Flat-O.cas.h5"
+data_file = "D:\\PyFluent\\24K_1Btip_PyFluent_example_EAR9E991\\Finished-Flat-O.dat.h5"
+
+# Load the case and data files
+try:
+    # Load the case file
+    fluent.file.read(file_type="case", file_name=case_file)
+    print(f"Successfully loaded case file: {case_file}")
+    
+    # Load the data file
+    fluent.file.read(file_type="data", file_name=data_file)
+    print(f"Successfully loaded data file: {data_file}")
+except Exception as e:
+    print(f"Error loading files: {e}")
+
+# Optional: Close Fluent after processing
+# fluent.exit()
