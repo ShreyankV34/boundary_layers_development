@@ -1,0 +1,211 @@
+Here’s a "smart checklist" with 3-5 points for each of the mentioned JIRA tickets:
+
+NJARV-31: Save current project settings and data in a YAML file
+
+1. Ensure all project configurations are serialized correctly into YAML format.
+
+
+2. Validate the YAML file against a schema for correctness before saving.
+
+
+3. Test saving functionality with various project settings to ensure no data loss.
+
+
+
+
+---
+
+NJARV-32: Create method for opening a project from a YAML file
+
+1. Implement YAML deserialization to load project configurations.
+
+
+2. Add error handling for invalid or corrupted YAML files.
+
+
+3. Test compatibility with previously saved YAML files to confirm proper loading.
+
+
+
+
+---
+
+NJARV-33: Save individual plot data in CSV format
+
+1. Ensure each plot's data is correctly formatted and written to a CSV file.
+
+
+2. Add a confirmation dialog when the save button is clicked.
+
+
+3. Validate the integrity of saved CSV files by reloading and verifying the data.
+
+
+
+
+---
+
+NJARV-34: Validate input file parameters against function definitions
+
+1. Map required input parameters to corresponding function definitions.
+
+
+2. Implement error messages for missing or mismatched parameters.
+
+
+3. Add unit tests for various input scenarios to ensure robustness.
+
+
+
+
+---
+
+NJARV-35: Inconsistent update of utilization data affecting recalculated values
+
+1. Identify and isolate the root cause of data inconsistency during updates.
+
+
+2. Implement automatic recalculation triggers after utilization data changes.
+
+
+3. Test the update process with different utilization datasets.
+
+
+
+
+---
+
+NJARV-36: Create Delete functions for Engine
+
+1. Verify that the selected engine is safely removed from the data structure.
+
+
+2. Ensure dependencies (e.g., related missions or utilizations) are handled appropriately.
+
+
+3. Add a confirmation dialog before deletion and undo functionality.
+
+
+
+
+---
+
+NJARV-47: Create Class for Report Generation
+
+1. Define the structure of the report class, including sections and formatting.
+
+
+2. Add methods for exporting reports in multiple formats (PDF, Word, etc.).
+
+
+3. Test report generation with sample datasets for accuracy and completeness.
+
+
+
+
+---
+
+NJARV-48: Add Table of Content in Reports
+
+1. Automatically generate a table of contents based on report sections.
+
+
+2. Include clickable links for each section in the table of contents.
+
+
+3. Validate TOC formatting across different output formats (PDF, Word, etc.).
+
+
+
+
+---
+
+NJARV-49: Create method to create Bento Study chapter
+
+1. Design the chapter structure for consistency with other sections.
+
+
+2. Integrate the chapter with the overall report generation workflow.
+
+
+3. Validate the chapter's content with sample data for formatting issues.
+
+
+
+
+---
+
+NJARV-50: Add Utilization Data Plots
+
+1. Implement visualization for utilization data using appropriate chart types.
+
+
+2. Ensure plots dynamically update with data changes.
+
+
+3. Test plots for usability and accuracy with large datasets.
+
+
+
+
+---
+
+NJARV-51: Summarize Pie Plots for Individual Missions
+
+1. Aggregate mission data to generate relevant pie charts.
+
+
+2. Ensure visual clarity and distinguishable segments in pie charts.
+
+
+3. Test summary tables with corresponding charts for alignment.
+
+
+
+
+---
+
+NJARV-52: Summarize All Mission Profiles for Each Quantity
+
+1. Consolidate mission data for all quantities into a summary table.
+
+
+2. Validate data aggregation logic for correctness.
+
+
+3. Cross-check summary outputs with individual mission data.
+
+
+
+
+---
+
+NJARV-53: Identify and Test Packages for Report Generation
+
+1. Research and shortlist packages supporting PDF, Word, and PowerPoint exports.
+
+
+2. Test selected packages for compatibility with project requirements.
+
+
+3. Compare performance, customization, and ease of use among shortlisted packages.
+
+
+
+
+---
+
+NJARV-61: Create Delete Functions for Missions
+
+1. Verify that mission deletion removes all related dependencies.
+
+
+2. Add confirmation prompts with detailed impact summaries.
+
+
+3. Test deletion scenarios for various mission configurations.
+
+
+
+These checklists will guide the implementation and testing of each ticket while ensuring a structured and thorough development process.
+
