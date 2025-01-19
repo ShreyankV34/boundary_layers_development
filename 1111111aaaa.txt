@@ -1,0 +1,58 @@
+NJARV-56: The annotation is wrong while hovering over stacked plot
+
+1. Debug the annotation logic to ensure it corresponds to the correct plot segment.
+2. Validate the hover event's data mapping to the plot's actual stacked data.
+3. Test the corrected annotations with multiple datasets and edge cases.
+
+NJARV-63: Create Folder with the name of the engine selected
+
+1. Implement folder creation logic based on the selected engine's name.
+2. Handle cases where the folder already exists to prevent errors.
+3. Validate folder creation functionality across different file systems.
+4. Test with both valid and invalid engine names to ensure stability.
+
+
+NJARV-64: Create the folder structure of Mission, Forecast, and Mission once the engine is selected
+
+1. Define the folder structure template for Mission, Forecast, and Mission.
+2. Automatically generate subfolders under the engine's directory.
+3. Ensure proper folder permissions and naming conventions.
+
+
+NJARV-65: Create methods to save calculated data and load the same using save and open buttons
+
+1. Serialize calculated data into a reusable format (eg YAML).
+2. Implement data integrity checks during both save and load operations.
+3. Optimize the load operation for faster performance compared to recalculations.
+4. Provide user feedback during save and load actions.
+5. Test the functionality with different data scenarios to ensure accuracy.
+
+
+NJARV-66: Test cases for integration Quality Test Plan (QTP)
+1. Define integration test cases covering all critical modules.
+2. Create a checklist for test data preparation and expected outcomes.
+3. Automate QTP test cases wherever possible for efficiency.
+4. Validate integration test results against the expected output.
+
+NJARV-68: Copy the input files (CSV) for mission, utilization, and forecast to the folder structure in the working directory
+
+1. Implement a method to copy input files to their respective directories.
+2. Verify the existence of the source file before copying.
+3. Handle cases where files with the same name already exist in the destination.
+
+
+NJARV-69: Create Delete functions for projects
+
+1. Ensure the deletion process removes all associated data and folders.
+2. Provide a confirmation prompt to prevent accidental deletions.
+3. Test the delete functionality with different project sizes and dependencies.
+4. Log the deletion actions for auditing purposes.
+
+
+NJARV-72: Integrating the File validation with working directory code
+
+1. Link file validation methods to the corresponding directory paths.
+2. Implement real-time validation as files are added to the working directory.
+3. Provide clear error messages for invalid or unsupported file formats.
+4. Test the integration for large file directories to ensure smooth performance.
+
