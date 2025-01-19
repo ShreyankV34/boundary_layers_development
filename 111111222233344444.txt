@@ -1,0 +1,20 @@
+NJARV-25: Create compare plots for two engines, instead of stacked plots if compare toggle is switched on
+1. Implement the compare toggle functionality to switch between stacked and comparative plots.
+2. Design a side-by-side layout for comparison plots for better visual clarity.
+3. Ensure proper labeling and color coding to distinguish between the two engines.
+4. Test the comparison functionality with various engine datasets for accuracy.
+
+NJARV-27: Add a data view / plot view toggle in the toolbar
+1. Introduce a toggle button in the toolbar to switch between data view and plot view.
+2. Ensure seamless transitions between the two views without losing the current context.
+3. Validate that both views load the correct data and display it appropriately.
+4. Test the toggle functionality across multiple datasets and ensure no lag or errors.
+
+
+NJARV-28: Create a data view widget for all the plot widgets, show it when data toggle is switched on
+1. Develop a dedicated data view widget to display tabular data corresponding to plots.
+2. Ensure the widget dynamically updates when plot data changes.
+3. Implement filtering and sorting options within the data view for better usability.
+4. Link the widget's visibility to the data toggle button.
+5. Test the widget with complex datasets to ensure scalability and performance.
+
