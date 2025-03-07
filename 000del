@@ -1,0 +1,270 @@
+"""
+***PROPRIETARY OF XYZ***
+Tool Name: FileCleanupPro
+
+Description:
+    FileCleanupPro is a high-end distributed file cleanup tool designed for enterprise-scale
+    environments. It integrates local file scanning, AWS S3, and Google Drive operations.
+    The tool provides a sleek, modern GUI built with PySide6 and QtModern, featuring advanced
+    table views with sorting, filtering, and asynchronous scanning using worker threads.
+
+Author: Your Name / XYZ
+Date: 2025-03-06
+"""
+
+import sys
+import pandas as pd
+import matplotlib.pyplot as plt
+from PySide6.QtWidgets import (
+    QApplication, QMainWindow, QToolBar, QAction, QLineEdit, QProgressBar,
+    QTableView, QVBoxLayout, QWidget, QMessageBox, QFileDialog
+)
+from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, QSortFilterProxyModel, QThread, Signal
+import qtmodern.styles
+import qtmodern.windows
+
+# Import local modules that interface with backend services.
+# These modules wrap calls to the REST API or directly to cloud services.
+from python_wrapper.file_cleanup import fetch_files, delete_selected_files
+from python_wrapper.cloud_integration import list_s3_files, list_drive_files
+
+
+# =============================================================================
+# FileTableModel: Custom model to manage file metadata in a table.
+# =============================================================================
+class FileTableModel(QAbstractTableModel):
+    def __init__(self, data=pd.DataFrame(), parent=None):
+        super().__init__(parent)
+        self._data = data.copy()
+
+    def rowCount(self, parent=QModelIndex()):
+        return self._data.shape[0]
+
+    def columnCount(self, parent=QModelIndex()):
+        return self._data.shape[1]
+
+    def data(self, index, role=Qt.DisplayRole):
+        if not index.isValid():
+            return None
+        if role == Qt.DisplayRole:
+            return str(self._data.iloc[index.row(), index.column()])
+        return None
+
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        if role != Qt.DisplayRole:
+            return None
+        if orientation == Qt.Horizontal:
+            return self._data.columns[section]
+        return str(section)
+
+    def setDataFrame(self, data):
+        """
+        Replace the current data with a new DataFrame and refresh the model.
+        """
+        self.beginResetModel()
+        self._data = data.copy()
+        self.endResetModel()
+
+
+# =============================================================================
+# ScanThread: A QThread subclass for asynchronous file scanning.
+# =============================================================================
+class ScanThread(QThread):
+    # Signal to update progress (integer percentage)
+    progress = Signal(int)
+    # Signal emitted when scanning is complete, passing a DataFrame of file metadata
+    finished = Signal(pd.DataFrame)
+
+    def __init__(self, scan_function, *args, **kwargs):
+        """
+        Initialize the scanning thread with the scanning function and its arguments.
+        """
+        super().__init__()
+        self.scan_function = scan_function
+        self.args = args
+        self.kwargs = kwargs
+
+    def run(self):
+        # Emit initial progress value.
+        self.progress.emit(10)
+        # Call the provided scanning function (e.g., fetch_files).
+        df = self.scan_function(*self.args, **self.kwargs)
+        # Update progress to complete.
+        self.progress.emit(100)
+        # Emit the finished signal with the resulting DataFrame.
+        self.finished.emit(df)
+
+
+# =============================================================================
+# HighEndFileCleanupDashboard: Main GUI class (View + Controller)
+# =============================================================================
+class HighEndFileCleanupDashboard(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("FileCleanupPro - High End File Cleanup Dashboard")
+        self.resize(1200, 800)
+        self.file_df = pd.DataFrame()
+
+        # Initialize toolbar and main UI components.
+        self._init_toolbar()
+        self._init_main_view()
+
+    def _init_toolbar(self):
+        """
+        Create and set up the main toolbar with actions for scanning, loading, deleting,
+        and analytics.
+        """
+        toolbar = QToolBar("Main Toolbar")
+        self.addToolBar(toolbar)
+
+        # Action to scan local files.
+        scan_local_action = QAction("Scan Local", self)
+        scan_local_action.triggered.connect(self.scan_local_files)
+        toolbar.addAction(scan_local_action)
+
+        # Action to load AWS S3 file metadata.
+        load_s3_action = QAction("Load AWS S3", self)
+        load_s3_action.triggered.connect(self.load_s3_files)
+        toolbar.addAction(load_s3_action)
+
+        # Action to load Google Drive file metadata.
+        load_drive_action = QAction("Load Google Drive", self)
+        load_drive_action.triggered.connect(self.load_drive_files)
+        toolbar.addAction(load_drive_action)
+
+        # Action to delete selected files.
+        delete_action = QAction("Delete Selected", self)
+        delete_action.triggered.connect(self.delete_selected_files)
+        toolbar.addAction(delete_action)
+
+        # Action to display analytics (e.g., file size distribution).
+        analytics_action = QAction("Show Analytics", self)
+        analytics_action.triggered.connect(self.show_analytics)
+        toolbar.addAction(analytics_action)
+
+        # Add a search bar to filter table contents.
+        self.search_bar = QLineEdit()
+        self.search_bar.setPlaceholderText("Search files...")
+        self.search_bar.textChanged.connect(self.filter_table)
+        toolbar.addWidget(self.search_bar)
+
+        # Add a progress bar to display scan progress.
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setMaximum(100)
+        toolbar.addWidget(self.progress_bar)
+
+    def _init_main_view(self):
+        """
+        Initialize the central widget containing the file table view.
+        """
+        self.table_view = QTableView()
+
+        # Set up the model and proxy model for sorting and filtering.
+        self.model = FileTableModel(pd.DataFrame())
+        self.proxy_model = QSortFilterProxyModel()
+        self.proxy_model.setSourceModel(self.model)
+        self.proxy_model.setFilterKeyColumn(-1)  # Apply filter across all columns.
+        self.proxy_model.setFilterCaseSensitivity(Qt.CaseInsensitive)
+        self.table_view.setModel(self.proxy_model)
+        self.table_view.setSelectionBehavior(QTableView.SelectRows)
+        self.table_view.setSelectionMode(QTableView.ExtendedSelection)
+
+        # Set up layout and central widget.
+        layout = QVBoxLayout()
+        layout.addWidget(self.table_view)
+        container = QWidget()
+        container.setLayout(layout)
+        self.setCentralWidget(container)
+
+    def filter_table(self, text):
+        """
+        Filter the table view based on text input from the search bar.
+        """
+        self.proxy_model.setFilterFixedString(text)
+
+    def scan_local_files(self):
+        """
+        Initiate scanning of local files using the asynchronous ScanThread.
+        """
+        self.thread = ScanThread(fetch_files)
+        self.thread.progress.connect(self.progress_bar.setValue)
+        self.thread.finished.connect(self.display_files)
+        self.thread.start()
+
+    def load_s3_files(self):
+        """
+        Load file metadata from AWS S3.
+        """
+        try:
+            df = list_s3_files("your-bucket-name")  # Replace with your actual bucket name.
+            self.display_files(df)
+        except Exception as e:
+            QMessageBox.critical(self, "AWS S3 Error", str(e))
+
+    def load_drive_files(self):
+        """
+        Load file metadata from Google Drive.
+        """
+        try:
+            df = list_drive_files()
+            self.display_files(df)
+        except Exception as e:
+            QMessageBox.critical(self, "Google Drive Error", str(e))
+
+    def display_files(self, df):
+        """
+        Update the table view with a new DataFrame of file metadata.
+        """
+        self.model.setDataFrame(df)
+
+    def delete_selected_files(self):
+        """
+        Delete the files selected in the table view by calling the backend deletion function.
+        """
+        selection = self.table_view.selectionModel().selectedRows()
+        if not selection:
+            QMessageBox.warning(self, "No Selection", "Please select files to delete.")
+            return
+
+        # Collect file paths from the selected rows (assume the first column contains file paths).
+        file_paths = []
+        for index in selection:
+            source_index = self.proxy_model.mapToSource(index)
+            file_path = self.model._data.iloc[source_index.row(), 0]
+            file_paths.append(file_path)
+
+        confirm = QMessageBox.question(
+            self, "Confirm Deletion", f"Are you sure you want to delete {len(file_paths)} files?"
+        )
+        if confirm == QMessageBox.Yes:
+            result = delete_selected_files(file_paths)
+            QMessageBox.information(self, "Deletion", f"Deletion result: {result}")
+            self.scan_local_files()  # Refresh file list after deletion.
+
+    def show_analytics(self):
+        """
+        Display a histogram of file sizes using matplotlib.
+        """
+        df = self.model._data
+        if df.empty:
+            QMessageBox.information(self, "No Data", "No file data available for analytics.")
+            return
+        plt.figure(figsize=(10, 6))
+        plt.hist(df["size_mb"], bins=50, color='blue', alpha=0.7)
+        plt.xlabel("File Size (MB)")
+        plt.ylabel("Count")
+        plt.title("File Size Distribution")
+        plt.show()
+
+
+# =============================================================================
+# Main Application Entry Point
+# =============================================================================
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    # Apply QtModern dark style for a polished modern look.
+    qtmodern.styles.dark(app)
+    window = HighEndFileCleanupDashboard()
+    modern_window = qtmodern.windows.ModernWindow(window)
+    modern_window.show()
+    sys.exit(app.exec())
